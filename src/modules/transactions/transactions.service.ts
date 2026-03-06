@@ -1,0 +1,64 @@
+import { HttpStatus, Injectable } from "@nestjs/common";
+import { randomUUID } from "crypto";
+import { AppException } from "../../common/errors/app-exception";
+import { TransactionType } from "./transaction-type.enum";
+import { TransactionsRepository } from "./transactions.repository";
+import { TransactionRecord } from "./transactions.types";
+
+interface CreateLedgerTransactionParams {
+  userId: string;
+  fundId: string;
+  accountId: string;
+  type: TransactionType;
+  amountAbs: number;
+  description?: string;
+  occurredAt?: string;
+  idempotencyKey?: string;
+}
+
+@Injectable()
+export class TransactionsService {
+  public constructor(private readonly transactionsRepository: TransactionsRepository) {}
+
+  public async createLedgerTransaction(
+    params: CreateLedgerTransactionParams
+  ): Promise<TransactionRecord> {
+    const signedAmount = this.applyAmountSign(params.type, params.amountAbs);
+    const occurredAt = params.occurredAt ?? new Date().toISOString();
+
+    try {
+      return await this.transactionsRepository.insertTransaction({
+        userId: params.userId,
+        fundId: params.fundId,
+        accountId: params.accountId,
+        type: params.type,
+        amount: signedAmount,
+        description: params.description,
+        occurredAt,
+        idempotencyKey: params.idempotencyKey ?? randomUUID()
+      });
+    } catch (error) {
+      const typedError = error as { code?: string };
+      if (typedError.code === "23505") {
+        throw new AppException(
+          {
+            code: "LEDGER_DUPLICATE_TRANSACTION",
+            message: "Duplicate transaction request."
+          },
+          HttpStatus.CONFLICT
+        );
+      }
+      throw error;
+    }
+  }
+
+  private applyAmountSign(type: TransactionType, amountAbs: number): number {
+    if (type === TransactionType.TOP_UP) {
+      return Math.abs(amountAbs);
+    }
+    if (type === TransactionType.EXPENSE) {
+      return -Math.abs(amountAbs);
+    }
+    return amountAbs;
+  }
+}
