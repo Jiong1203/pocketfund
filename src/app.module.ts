@@ -3,6 +3,7 @@ import { APP_GUARD } from "@nestjs/core";
 import { ScheduleModule } from "@nestjs/schedule";
 import { ServeStaticModule } from "@nestjs/serve-static";
 import { join } from "path";
+import { AppController } from "./app.controller";
 import { DatabaseModule } from "./common/database/database.module";
 import { RequestIdMiddleware } from "./common/middleware/request-id.middleware";
 import { RequestLoggerMiddleware } from "./common/middleware/request-logger.middleware";
@@ -27,6 +28,7 @@ import { TransactionsModule } from "./modules/transactions/transactions.module";
     FundsModule,
     SchedulesModule
   ],
+  controllers: [AppController],
   providers: [
     {
       provide: APP_GUARD,

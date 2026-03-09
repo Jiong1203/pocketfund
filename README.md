@@ -35,14 +35,44 @@
    - `npm run dev:frontend`
    - open `http://localhost:5173`
 
-5. Run e2e tests:
+6. Run e2e tests:
 
    - `npm run test:e2e`
 
-6. (Optional) Run DB integration tests:
+7. (Optional) Run DB integration tests:
 
    - set `INTEGRATION_TEST_DATABASE_URL`
    - `npm run test:integration`
+
+## Deployment
+
+### Fly.io (推薦 - 0 成本)
+
+快速部署到 Fly.io（免費額度永久有效）：
+
+```bash
+# 安裝 Fly CLI
+iwr https://fly.io/install.ps1 -useb | iex  # Windows
+# curl -L https://fly.io/install.sh | sh     # macOS/Linux
+
+# 登入
+fly auth login
+
+# 部署 Backend
+fly launch --no-deploy
+fly secrets set DATABASE_URL="your-supabase-url"
+fly secrets set JWT_SECRET="your-secret"
+fly deploy
+
+# 部署 Frontend (記得先修改 frontend/nginx.conf 中的 Backend URL)
+cd frontend
+fly launch --no-deploy
+fly deploy
+```
+
+📚 **詳細部署文件**:
+- [QUICKSTART_FLYIO.md](./QUICKSTART_FLYIO.md) - 3 步驟快速入門
+- [DEPLOYMENT.md](./DEPLOYMENT.md) - 完整部署指南
 
 ## Implemented APIs (Phase 2.5 - Stage 2)
 
