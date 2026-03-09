@@ -1,12 +1,38 @@
 :root {
   font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", Arial, sans-serif;
-  color: #0f172a;
-  background: #f5f7fb;
+  --bg-color: #f5f7fb;
+  --surface-color: #ffffff;
+  --surface-muted-color: #f2f5fb;
+  --text-color: #0f172a;
+  --text-muted-color: #4e5968;
+  --primary-color: #1f6feb;
+  --primary-contrast: #ffffff;
+  --border-color: #c9d4e5;
+  --border-strong-color: #8fa2bf;
+  --success-color: #027a48;
+  --error-color: #b42318;
+
+  color: var(--text-color);
+  background: var(--bg-color);
   line-height: 1.5;
   font-weight: 400;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+[data-theme="dark"] {
+  --bg-color: #0f172a;
+  --surface-color: #111b2e;
+  --surface-muted-color: #1a2740;
+  --text-color: #e8eefc;
+  --text-muted-color: #b8c4dc;
+  --primary-color: #3b82f6;
+  --primary-contrast: #ffffff;
+  --border-color: #2d3d5b;
+  --border-strong-color: #6d84ad;
+  --success-color: #34d399;
+  --error-color: #f87171;
 }
 
 * {
@@ -16,4 +42,6 @@
 body {
   margin: 0;
   min-width: 320px;
+  background: var(--bg-color);
+  color: var(--text-color);
 }

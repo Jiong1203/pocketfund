@@ -14,8 +14,8 @@ defineProps<{ title?: string }>();
 
 <style scoped>
 .card {
-  background: #fff;
-  border: 1px solid #d9e1ef;
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
   border-radius: 12px;
   padding: 12px;
 }

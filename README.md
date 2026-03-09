@@ -90,6 +90,9 @@ All non-auth endpoints require `Authorization: Bearer <accessToken>`.
   - `登入 / 註冊` 頁
   - `儀表板`（帳戶、基金、交易新增、交易查詢）
   - `基金圖表中心`（每月儲值/支出聚合圖）
+- Theme:
+  - supports `淺色 / 深色` toggle
+  - preference persists in `localStorage`
 - API proxy: Vite forwards `/auth`, `/accounts`, `/funds`, `/schedules` to backend `http://localhost:3000`
 - UI upgrades:
   - centralized API types in `frontend/src/types/api.ts`

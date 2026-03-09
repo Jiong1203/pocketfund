@@ -15,14 +15,14 @@ defineProps<{
 }
 
 .ok {
-  color: #027a48;
+  color: var(--success-color);
 }
 
 .err {
-  color: #b42318;
+  color: var(--error-color);
 }
 
 .hint {
-  color: #4b5563;
+  color: var(--text-muted-color);
 }
 </style>

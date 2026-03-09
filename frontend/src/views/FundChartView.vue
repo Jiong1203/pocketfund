@@ -107,7 +107,7 @@ onMounted(async () => {
 
 .top p {
   margin: 4px 0 0;
-  color: #4b5563;
+  color: var(--text-muted-color);
 }
 
 .actions {
@@ -123,14 +123,16 @@ onMounted(async () => {
 select,
 button {
   padding: 8px;
-  border: 1px solid #c9d4e5;
+  border: 1px solid var(--border-color);
   border-radius: 8px;
+  background: var(--surface-color);
+  color: var(--text-color);
 }
 
 button {
-  background: #1f6feb;
-  color: #fff;
-  border-color: #1f6feb;
+  background: var(--primary-color);
+  color: var(--primary-contrast);
+  border-color: var(--primary-color);
   cursor: pointer;
 }
 </style>

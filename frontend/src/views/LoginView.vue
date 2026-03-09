@@ -71,8 +71,8 @@ async function submit(): Promise<void> {
 .panel {
   width: 100%;
   max-width: 420px;
-  background: #ffffff;
-  border: 1px solid #dbe3f0;
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
   border-radius: 12px;
   padding: 20px;
 }
@@ -83,7 +83,7 @@ h1 {
 
 p {
   margin: 0 0 16px;
-  color: #4e5968;
+  color: var(--text-muted-color);
 }
 
 .tabs {
@@ -94,14 +94,16 @@ p {
 }
 
 .tabs button {
-  border: 1px solid #ccd6e5;
-  background: #f7f9fc;
+  border: 1px solid var(--border-strong-color);
+  background: var(--surface-muted-color);
+  color: var(--text-color);
+  font-weight: 700;
 }
 
 .tabs button.active {
-  background: #1f6feb;
-  color: #fff;
-  border-color: #1f6feb;
+  background: var(--primary-color);
+  color: var(--primary-contrast);
+  border-color: var(--primary-color);
 }
 
 form {
@@ -117,20 +119,23 @@ label {
 
 input {
   padding: 10px;
-  border: 1px solid #ccd6e5;
+  border: 1px solid var(--border-color);
   border-radius: 8px;
+  background: var(--surface-color);
+  color: var(--text-color);
 }
 
 button {
   padding: 10px;
-  border: 1px solid #1f6feb;
+  border: 1px solid var(--primary-color);
   border-radius: 8px;
-  background: #1f6feb;
-  color: #fff;
+  background: var(--primary-color);
+  color: var(--primary-contrast);
+  cursor: pointer;
 }
 
 .error {
   margin-top: 10px;
-  color: #b42318;
+  color: var(--error-color);
 }
 </style>
