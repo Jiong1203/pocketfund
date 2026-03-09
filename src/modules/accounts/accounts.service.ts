@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { AccountsRepository } from "./accounts.repository";
 import { CreateAccountDto } from "./dto/create-account.dto";
 import { UpdateAccountDto } from "./dto/update-account.dto";
+import { ListTransactionsQueryDto } from "../transactions/dto/list-transactions-query.dto";
 
 @Injectable()
 export class AccountsService {
@@ -26,5 +27,9 @@ export class AccountsService {
   public async delete(userId: string, accountId: string) {
     await this.accountsRepository.delete(userId, accountId);
     return { deleted: true };
+  }
+
+  public async getTransactions(userId: string, accountId: string, query: ListTransactionsQueryDto) {
+    return this.accountsRepository.getAccountTransactions(userId, accountId, query);
   }
 }

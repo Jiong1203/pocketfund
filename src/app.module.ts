@@ -1,7 +1,9 @@
-import { Module } from "@nestjs/common";
+import { MiddlewareConsumer, Module, NestModule } from "@nestjs/common";
 import { APP_GUARD } from "@nestjs/core";
 import { ScheduleModule } from "@nestjs/schedule";
 import { DatabaseModule } from "./common/database/database.module";
+import { RequestIdMiddleware } from "./common/middleware/request-id.middleware";
+import { RequestLoggerMiddleware } from "./common/middleware/request-logger.middleware";
 import { AccountsModule } from "./modules/accounts/accounts.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { JwtAuthGuard } from "./modules/auth/jwt-auth.guard";
@@ -26,4 +28,8 @@ import { TransactionsModule } from "./modules/transactions/transactions.module";
     }
   ]
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  public configure(consumer: MiddlewareConsumer): void {
+    consumer.apply(RequestIdMiddleware, RequestLoggerMiddleware).forRoutes("*");
+  }
+}

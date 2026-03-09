@@ -1,7 +1,8 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from "@nestjs/common";
 import { IsUUID } from "class-validator";
 import { CurrentUser } from "../auth/current-user.decorator";
 import { AuthUser } from "../auth/auth.types";
+import { ListTransactionsQueryDto } from "../transactions/dto/list-transactions-query.dto";
 import { AccountsService } from "./accounts.service";
 import { CreateAccountDto } from "./dto/create-account.dto";
 import { UpdateAccountDto } from "./dto/update-account.dto";
@@ -42,5 +43,14 @@ export class AccountsController {
   @Delete(":id")
   public async delete(@CurrentUser() user: AuthUser, @Param() params: AccountParamDto) {
     return { data: await this.accountsService.delete(user.id, params.id) };
+  }
+
+  @Get(":id/transactions")
+  public async getTransactions(
+    @CurrentUser() user: AuthUser,
+    @Param() params: AccountParamDto,
+    @Query() query: ListTransactionsQueryDto
+  ) {
+    return { data: await this.accountsService.getTransactions(user.id, params.id, query) };
   }
 }

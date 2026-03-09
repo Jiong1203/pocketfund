@@ -2,6 +2,7 @@ import { HttpStatus, Injectable } from "@nestjs/common";
 import { AppException } from "../../common/errors/app-exception";
 import { AccountsRepository } from "../accounts/accounts.repository";
 import { CreateFundTransactionDto } from "../transactions/dto/create-fund-transaction.dto";
+import { ListTransactionsQueryDto } from "../transactions/dto/list-transactions-query.dto";
 import { TransactionType } from "../transactions/transaction-type.enum";
 import { TransactionsService } from "../transactions/transactions.service";
 import { CreateFundDto } from "./dto/create-fund.dto";
@@ -100,8 +101,8 @@ export class FundsService {
     return { fundId, balance };
   }
 
-  public async getTransactions(userId: string, fundId: string, limit: number) {
+  public async getTransactions(userId: string, fundId: string, query: ListTransactionsQueryDto) {
     await this.fundsRepository.ensureFundExists(userId, fundId);
-    return this.fundsRepository.getFundTransactions(userId, fundId, limit);
+    return this.fundsRepository.getFundTransactions(userId, fundId, query);
   }
 }

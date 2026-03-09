@@ -1,6 +1,7 @@
 import { HttpStatus, Injectable, NotFoundException } from "@nestjs/common";
 import { AppException } from "../../common/errors/app-exception";
 import { DatabaseService } from "../../common/database/database.service";
+import { ListTransactionsQueryDto } from "../transactions/dto/list-transactions-query.dto";
 import { TransactionRecord } from "../transactions/transactions.types";
 import { CreateFundDto } from "./dto/create-fund.dto";
 import { UpdateFundDto } from "./dto/update-fund.dto";
@@ -20,6 +21,10 @@ interface FundRow {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+}
+
+interface CountRow {
+  total: string;
 }
 
 @Injectable()
@@ -148,19 +153,53 @@ export class FundsRepository {
   public async getFundTransactions(
     userId: string,
     fundId: string,
-    limit: number
-  ): Promise<TransactionRecord[]> {
+    query: ListTransactionsQueryDto
+  ): Promise<{ items: TransactionRecord[]; meta: { page: number; pageSize: number; total: number } }> {
+    const page = query.page ?? 1;
+    const pageSize = query.pageSize ?? 50;
+    const offset = (page - 1) * pageSize;
+
+    const filters: string[] = ["user_id = $1", "fund_id = $2"];
+    const values: unknown[] = [userId, fundId];
+
+    if (query.type) {
+      values.push(query.type);
+      filters.push(`type = $${values.length}`);
+    }
+    if (query.startAt) {
+      values.push(query.startAt);
+      filters.push(`occurred_at >= $${values.length}::timestamptz`);
+    }
+    if (query.endAt) {
+      values.push(query.endAt);
+      filters.push(`occurred_at <= $${values.length}::timestamptz`);
+    }
+
+    const whereClause = filters.join(" and ");
+    const countSql = `select count(*)::text as total from transactions where ${whereClause}`;
+    const countResult = await this.db.query<CountRow>(countSql, values);
+    const total = Number(countResult.rows[0]?.total ?? 0);
+
+    const pagedValues = [...values, pageSize, offset];
     const result = await this.db.query<TransactionRecord>(
       `
       select id, user_id, fund_id, account_id, type, amount, description, occurred_at, idempotency_key, created_at
       from transactions
-      where user_id = $1 and fund_id = $2
+      where ${whereClause}
       order by occurred_at desc, created_at desc
-      limit $3
+      limit $${pagedValues.length - 1}
+      offset $${pagedValues.length}
       `,
-      [userId, fundId, limit]
+      pagedValues
     );
 
-    return result.rows;
+    return {
+      items: result.rows,
+      meta: {
+        page,
+        pageSize,
+        total
+      }
+    };
   }
 }

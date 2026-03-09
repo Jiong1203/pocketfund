@@ -1,11 +1,9 @@
 import {
   Body,
   Controller,
-  DefaultValuePipe,
   Delete,
   Get,
   Param,
-  ParseIntPipe,
   Patch,
   Post,
   Query
@@ -14,6 +12,7 @@ import { IsUUID } from "class-validator";
 import { CurrentUser } from "../auth/current-user.decorator";
 import { AuthUser } from "../auth/auth.types";
 import { CreateFundTransactionDto } from "../transactions/dto/create-fund-transaction.dto";
+import { ListTransactionsQueryDto } from "../transactions/dto/list-transactions-query.dto";
 import { CreateFundDto } from "./dto/create-fund.dto";
 import { UpdateFundDto } from "./dto/update-fund.dto";
 import { FundsService } from "./funds.service";
@@ -92,8 +91,8 @@ export class FundsController {
   public async getTransactions(
     @CurrentUser() user: AuthUser,
     @Param() params: FundParamDto,
-    @Query("limit", new DefaultValuePipe(50), ParseIntPipe) limit: number
+    @Query() query: ListTransactionsQueryDto
   ) {
-    return { data: await this.fundsService.getTransactions(user.id, params.id, limit) };
+    return { data: await this.fundsService.getTransactions(user.id, params.id, query) };
   }
 }

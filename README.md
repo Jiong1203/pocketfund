@@ -33,6 +33,11 @@
 
    - `npm run test:e2e`
 
+6. (Optional) Run DB integration tests:
+
+   - set `INTEGRATION_TEST_DATABASE_URL`
+   - `npm run test:integration`
+
 ## Implemented APIs (Phase 2.5 - Stage 2)
 
 - Auth
@@ -44,6 +49,7 @@
   - `GET /accounts/:id`
   - `PATCH /accounts/:id`
   - `DELETE /accounts/:id`
+  - `GET /accounts/:id/transactions?page=1&pageSize=20&type=EXPENSE&startAt=2026-01-01T00:00:00.000Z&endAt=2026-12-31T23:59:59.999Z`
 - Funds CRUD + Ledger Operations
   - `POST /funds`
   - `GET /funds`
@@ -54,7 +60,7 @@
   - `POST /funds/:id/expenses`
   - `POST /funds/:id/adjustments`
   - `GET /funds/:id/balance`
-  - `GET /funds/:id/transactions?limit=50`
+  - `GET /funds/:id/transactions?page=1&pageSize=20&type=TOP_UP&startAt=2026-01-01T00:00:00.000Z&endAt=2026-12-31T23:59:59.999Z`
 - Scheduled Top-ups
   - `POST /schedules/top-ups`
   - `GET /schedules/top-ups`
@@ -62,6 +68,12 @@
   - `DELETE /schedules/top-ups/:id`
 
 All non-auth endpoints require `Authorization: Bearer <accessToken>`.
+
+## Observability
+
+- Every request has `x-request-id` (generated if not provided).
+- HTTP access logs are emitted as structured JSON lines.
+- Recommended to pass your own `x-request-id` from frontend or API gateway.
 
 ## Error Response Format
 

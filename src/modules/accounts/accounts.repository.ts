@@ -1,6 +1,8 @@
 import { HttpStatus, Injectable, NotFoundException } from "@nestjs/common";
 import { AppException } from "../../common/errors/app-exception";
 import { DatabaseService } from "../../common/database/database.service";
+import { ListTransactionsQueryDto } from "../transactions/dto/list-transactions-query.dto";
+import { TransactionRecord } from "../transactions/transactions.types";
 import { CreateAccountDto } from "./dto/create-account.dto";
 import { UpdateAccountDto } from "./dto/update-account.dto";
 
@@ -11,6 +13,10 @@ interface AccountRow {
   type: string;
   created_at: string;
   updated_at: string;
+}
+
+interface CountRow {
+  total: string;
 }
 
 @Injectable()
@@ -102,5 +108,58 @@ export class AccountsRepository {
 
   public async ensureOwned(userId: string, accountId: string): Promise<void> {
     await this.getById(userId, accountId);
+  }
+
+  public async getAccountTransactions(
+    userId: string,
+    accountId: string,
+    query: ListTransactionsQueryDto
+  ): Promise<{ items: TransactionRecord[]; meta: { page: number; pageSize: number; total: number } }> {
+    await this.ensureOwned(userId, accountId);
+
+    const page = query.page ?? 1;
+    const pageSize = query.pageSize ?? 50;
+    const offset = (page - 1) * pageSize;
+
+    const filters: string[] = ["user_id = $1", "account_id = $2"];
+    const values: unknown[] = [userId, accountId];
+
+    if (query.type) {
+      values.push(query.type);
+      filters.push(`type = $${values.length}`);
+    }
+    if (query.startAt) {
+      values.push(query.startAt);
+      filters.push(`occurred_at >= $${values.length}::timestamptz`);
+    }
+    if (query.endAt) {
+      values.push(query.endAt);
+      filters.push(`occurred_at <= $${values.length}::timestamptz`);
+    }
+
+    const whereClause = filters.join(" and ");
+    const countResult = await this.db.query<CountRow>(
+      `select count(*)::text as total from transactions where ${whereClause}`,
+      values
+    );
+    const total = Number(countResult.rows[0]?.total ?? 0);
+
+    const pagedValues = [...values, pageSize, offset];
+    const result = await this.db.query<TransactionRecord>(
+      `
+      select id, user_id, fund_id, account_id, type, amount, description, occurred_at, idempotency_key, created_at
+      from transactions
+      where ${whereClause}
+      order by occurred_at desc, created_at desc
+      limit $${pagedValues.length - 1}
+      offset $${pagedValues.length}
+      `,
+      pagedValues
+    );
+
+    return {
+      items: result.rows,
+      meta: { page, pageSize, total }
+    };
   }
 }
