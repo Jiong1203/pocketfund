@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pocketfund demo</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header>
+      <h1>pocketfund</h1>
+      <p>Phase 2.5 demo console</p>
+      <div id="status"></div>
+    </header>
+
+    <main>
+      <section class="card">
+        <h2>Auth</h2>
+        <form id="register-form">
+          <h3>Register</h3>
+          <input name="email" type="email" placeholder="email" required />
+          <input name="password" type="password" placeholder="password (min 8)" required />
+          <button type="submit">Register</button>
+        </form>
+        <form id="login-form">
+          <h3>Login</h3>
+          <input name="email" type="email" placeholder="email" required />
+          <input name="password" type="password" placeholder="password" required />
+          <button type="submit">Login</button>
+        </form>
+        <button id="logout-btn" type="button">Logout</button>
+      </section>
+
+      <section class="card">
+        <h2>Accounts</h2>
+        <form id="account-form">
+          <input name="name" placeholder="Account name" required />
+          <select name="type">
+            <option value="salary">salary</option>
+            <option value="saving">saving</option>
+          </select>
+          <button type="submit">Create Account</button>
+        </form>
+        <ul id="account-list"></ul>
+      </section>
+
+      <section class="card">
+        <h2>Funds</h2>
+        <form id="fund-form">
+          <input name="name" placeholder="Fund name" required />
+          <input name="description" placeholder="Description" />
+          <input name="monthlyAmount" type="number" step="0.01" min="0" placeholder="Monthly amount" />
+          <input name="cycleDay" type="number" min="1" max="31" placeholder="Cycle day" />
+          <button type="submit">Create Fund</button>
+        </form>
+        <ul id="fund-list"></ul>
+      </section>
+
+      <section class="card">
+        <h2>Ledger Action</h2>
+        <form id="tx-form">
+          <select name="fundId" id="tx-fund" required></select>
+          <select name="accountId" id="tx-account" required></select>
+          <select name="actionType">
+            <option value="top-ups">TOP_UP</option>
+            <option value="expenses">EXPENSE</option>
+          </select>
+          <input name="amount" type="number" step="0.01" min="0.01" placeholder="Amount" required />
+          <input name="description" placeholder="Description" />
+          <button type="submit">Submit Transaction</button>
+        </form>
+      </section>
+
+      <section class="card">
+        <h2>Fund Transactions</h2>
+        <form id="query-form">
+          <select name="fundId" id="query-fund" required></select>
+          <select name="type">
+            <option value="">ALL</option>
+            <option value="TOP_UP">TOP_UP</option>
+            <option value="EXPENSE">EXPENSE</option>
+            <option value="ADJUST">ADJUST</option>
+          </select>
+          <input name="startAt" type="datetime-local" />
+          <input name="endAt" type="datetime-local" />
+          <input name="pageSize" type="number" min="1" max="100" value="20" />
+          <button type="submit">Load</button>
+        </form>
+        <div class="pager">
+          <button id="prev-page" type="button">Prev</button>
+          <span id="page-info">page 1</span>
+          <button id="next-page" type="button">Next</button>
+        </div>
+        <pre id="tx-output"></pre>
+      </section>
+    </main>
+
+    <section class="card">
+      <h2>Console</h2>
+      <pre id="console"></pre>
+    </section>
+
+    <script src="/app.js"></script>
+  </body>
+</html>

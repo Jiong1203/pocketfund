@@ -1,6 +1,8 @@
 import { MiddlewareConsumer, Module, NestModule } from "@nestjs/common";
 import { APP_GUARD } from "@nestjs/core";
 import { ScheduleModule } from "@nestjs/schedule";
+import { ServeStaticModule } from "@nestjs/serve-static";
+import { join } from "path";
 import { DatabaseModule } from "./common/database/database.module";
 import { RequestIdMiddleware } from "./common/middleware/request-id.middleware";
 import { RequestLoggerMiddleware } from "./common/middleware/request-logger.middleware";
@@ -13,6 +15,10 @@ import { TransactionsModule } from "./modules/transactions/transactions.module";
 
 @Module({
   imports: [
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, "..", "public"),
+      exclude: ["/auth*", "/accounts*", "/funds*", "/schedules*"]
+    }),
     ScheduleModule.forRoot(),
     DatabaseModule,
     AuthModule,

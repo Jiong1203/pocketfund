@@ -27,7 +27,13 @@
 
 4. Start dev server:
 
-   - `npm run start:dev`
+   - `npm run dev`
+   - open `http://localhost:3000` to use the built-in demo UI
+
+5. Start Vue frontend (zh-tw):
+
+   - `npm run dev:frontend`
+   - open `http://localhost:5173`
 
 5. Run e2e tests:
 
@@ -68,6 +74,21 @@
   - `DELETE /schedules/top-ups/:id`
 
 All non-auth endpoints require `Authorization: Bearer <accessToken>`.
+
+## Built-in Demo UI
+
+- Served as static files from `public/`
+- Includes: register/login, create account, create fund, top-up/expense, and transaction query
+- Purpose: quickly inspect backend behavior before full frontend implementation
+
+## Vue Frontend Skeleton (zh-tw)
+
+- Path: `frontend/`
+- Stack: Vue 3 + TypeScript + Vue Router + Vite
+- Current pages:
+  - `登入 / 註冊` 頁
+  - `儀表板`（帳戶、基金、交易新增與交易查詢）
+- API proxy: Vite forwards `/auth`, `/accounts`, `/funds`, `/schedules` to backend `http://localhost:3000`
 
 ## Observability
 
