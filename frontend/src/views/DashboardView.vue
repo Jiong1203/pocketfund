@@ -1,37 +1,13 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
-import { api, ApiError } from "../lib/api";
+import AppCard from "../components/AppCard.vue";
+import FlashMessage from "../components/FlashMessage.vue";
+import TransactionTable from "../components/TransactionTable.vue";
+import { ApiError } from "../lib/api";
 import { clearAccessToken } from "../lib/session";
-
-interface Account {
-  id: string;
-  name: string;
-  type: string;
-}
-
-interface Fund {
-  id: string;
-  name: string;
-  cycle_day: number;
-}
-
-interface TransactionRecord {
-  id: string;
-  type: string;
-  amount: string;
-  description: string | null;
-  occurred_at: string;
-}
-
-interface PagedTransactions {
-  items: TransactionRecord[];
-  meta: {
-    page: number;
-    pageSize: number;
-    total: number;
-  };
-}
+import { pocketfundApi } from "../services/pocketfund";
+import type { Account, Fund, PagedTransactions } from "../types/api";
 
 const router = useRouter();
 const loading = ref(false);
@@ -43,7 +19,7 @@ const errorMessage = ref("");
 
 const accountForm = reactive({
   name: "",
-  type: "salary"
+  type: "salary" as "salary" | "saving"
 });
 
 const fundForm = reactive({
@@ -54,14 +30,14 @@ const fundForm = reactive({
 const txForm = reactive({
   fundId: "",
   accountId: "",
-  actionType: "top-ups",
+  actionType: "top-ups" as "top-ups" | "expenses",
   amount: 0,
   description: ""
 });
 
 const queryForm = reactive({
   fundId: "",
-  type: "",
+  type: "" as "" | "TOP_UP" | "EXPENSE" | "ADJUST" | "TRANSFER",
   page: 1,
   pageSize: 20
 });
@@ -86,21 +62,15 @@ async function loadBaseData(): Promise<void> {
   clearFlash();
   try {
     const [accountData, fundData] = await Promise.all([
-      api.get<Account[]>("/accounts"),
-      api.get<Fund[]>("/funds")
+      pocketfundApi.listAccounts(),
+      pocketfundApi.listFunds()
     ]);
     accounts.value = accountData;
     funds.value = fundData;
 
-    if (!txForm.accountId && accounts.value[0]) {
-      txForm.accountId = accounts.value[0].id;
-    }
-    if (!txForm.fundId && funds.value[0]) {
-      txForm.fundId = funds.value[0].id;
-    }
-    if (!queryForm.fundId && funds.value[0]) {
-      queryForm.fundId = funds.value[0].id;
-    }
+    if (!txForm.accountId && accounts.value[0]) txForm.accountId = accounts.value[0].id;
+    if (!txForm.fundId && funds.value[0]) txForm.fundId = funds.value[0].id;
+    if (!queryForm.fundId && funds.value[0]) queryForm.fundId = funds.value[0].id;
 
     if (queryForm.fundId) {
       await loadTransactions();
@@ -115,7 +85,7 @@ async function loadBaseData(): Promise<void> {
 async function createAccount(): Promise<void> {
   clearFlash();
   try {
-    await api.post("/accounts", accountForm);
+    await pocketfundApi.createAccount(accountForm.name, accountForm.type);
     message.value = "帳戶建立成功";
     accountForm.name = "";
     await loadBaseData();
@@ -127,10 +97,7 @@ async function createAccount(): Promise<void> {
 async function createFund(): Promise<void> {
   clearFlash();
   try {
-    await api.post("/funds", {
-      name: fundForm.name,
-      cycleDay: Number(fundForm.cycleDay)
-    });
+    await pocketfundApi.createFund(fundForm.name, Number(fundForm.cycleDay));
     message.value = "基金建立成功";
     fundForm.name = "";
     fundForm.cycleDay = 1;
@@ -143,11 +110,21 @@ async function createFund(): Promise<void> {
 async function submitTransaction(): Promise<void> {
   clearFlash();
   try {
-    await api.post(`/funds/${txForm.fundId}/${txForm.actionType}`, {
-      accountId: txForm.accountId,
-      amount: Number(txForm.amount),
-      description: txForm.description || undefined
-    });
+    if (txForm.actionType === "top-ups") {
+      await pocketfundApi.createTopUp(
+        txForm.fundId,
+        txForm.accountId,
+        Number(txForm.amount),
+        txForm.description || undefined
+      );
+    } else {
+      await pocketfundApi.createExpense(
+        txForm.fundId,
+        txForm.accountId,
+        Number(txForm.amount),
+        txForm.description || undefined
+      );
+    }
     message.value = "交易新增成功";
     txForm.amount = 0;
     txForm.description = "";
@@ -161,16 +138,11 @@ async function loadTransactions(): Promise<void> {
   if (!queryForm.fundId) return;
   clearFlash();
   try {
-    const params = new URLSearchParams({
-      page: String(queryForm.page),
-      pageSize: String(queryForm.pageSize)
+    transactions.value = await pocketfundApi.listFundTransactions(queryForm.fundId, {
+      page: queryForm.page,
+      pageSize: queryForm.pageSize,
+      type: queryForm.type || undefined
     });
-    if (queryForm.type) {
-      params.set("type", queryForm.type);
-    }
-    transactions.value = await api.get<PagedTransactions>(
-      `/funds/${queryForm.fundId}/transactions?${params.toString()}`
-    );
   } catch (error) {
     onError(error);
   }
@@ -202,18 +174,20 @@ onMounted(async () => {
     <header class="top">
       <div>
         <h1>資金儀表板</h1>
-        <p>以 zh-tw 為主的 Vue 前端骨架</p>
+        <p>Vue 3（zh-tw）前端骨架</p>
       </div>
-      <button @click="logout">登出</button>
+      <div class="top-actions">
+        <button type="button" @click="$router.push({ name: 'charts' })">查看基金圖表</button>
+        <button @click="logout">登出</button>
+      </div>
     </header>
 
-    <p v-if="loading" class="hint">載入中...</p>
-    <p v-if="message" class="ok">{{ message }}</p>
-    <p v-if="errorMessage" class="err">{{ errorMessage }}</p>
+    <FlashMessage v-if="loading" type="hint" text="載入中..." />
+    <FlashMessage v-if="message" type="ok" :text="message" />
+    <FlashMessage v-if="errorMessage" type="err" :text="errorMessage" />
 
     <div class="grid">
-      <section class="card">
-        <h2>建立帳戶</h2>
+      <AppCard title="建立帳戶">
         <form @submit.prevent="createAccount">
           <input v-model="accountForm.name" placeholder="帳戶名稱" required />
           <select v-model="accountForm.type">
@@ -227,10 +201,9 @@ onMounted(async () => {
             {{ account.name }}（{{ account.type }}）
           </li>
         </ul>
-      </section>
+      </AppCard>
 
-      <section class="card">
-        <h2>建立基金</h2>
+      <AppCard title="建立基金">
         <form @submit.prevent="createFund">
           <input v-model="fundForm.name" placeholder="基金名稱" required />
           <input v-model.number="fundForm.cycleDay" type="number" min="1" max="31" required />
@@ -241,10 +214,9 @@ onMounted(async () => {
             {{ fund.name }}（每月 {{ fund.cycle_day }} 日）
           </li>
         </ul>
-      </section>
+      </AppCard>
 
-      <section class="card">
-        <h2>新增交易</h2>
+      <AppCard title="新增交易">
         <form @submit.prevent="submitTransaction">
           <select v-model="txForm.fundId" required>
             <option disabled value="">請選擇基金</option>
@@ -262,10 +234,9 @@ onMounted(async () => {
           <input v-model="txForm.description" placeholder="說明（可選）" />
           <button type="submit">送出交易</button>
         </form>
-      </section>
+      </AppCard>
 
-      <section class="card wide">
-        <h2>交易查詢</h2>
+      <AppCard title="交易查詢" class="wide">
         <form class="inline" @submit.prevent="loadTransactions">
           <select v-model="queryForm.fundId" required>
             <option disabled value="">請選擇基金</option>
@@ -287,25 +258,8 @@ onMounted(async () => {
           <button type="button" @click="nextPage">下一頁</button>
         </div>
 
-        <table>
-          <thead>
-            <tr>
-              <th>類型</th>
-              <th>金額</th>
-              <th>說明</th>
-              <th>時間</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="item in transactions?.items ?? []" :key="item.id">
-              <td>{{ item.type }}</td>
-              <td>{{ item.amount }}</td>
-              <td>{{ item.description ?? "-" }}</td>
-              <td>{{ new Date(item.occurred_at).toLocaleString("zh-TW") }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </section>
+        <TransactionTable :rows="transactions?.items ?? []" />
+      </AppCard>
     </div>
   </div>
 </template>
@@ -331,17 +285,15 @@ onMounted(async () => {
   color: #4b5563;
 }
 
+.top-actions {
+  display: flex;
+  gap: 8px;
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 12px;
-}
-
-.card {
-  background: #fff;
-  border: 1px solid #d9e1ef;
-  border-radius: 12px;
-  padding: 12px;
 }
 
 .wide {
@@ -354,7 +306,7 @@ form {
 }
 
 .inline {
-  grid-template-columns: repeat(4, minmax(120px, 1fr)) auto;
+  grid-template-columns: repeat(3, minmax(120px, 1fr)) auto;
 }
 
 input,
@@ -377,34 +329,10 @@ ul {
   padding-left: 20px;
 }
 
-.hint {
-  color: #4b5563;
-}
-
-.ok {
-  color: #027a48;
-}
-
-.err {
-  color: #b42318;
-}
-
 .pager {
   display: flex;
   gap: 8px;
   align-items: center;
   margin: 10px 0;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-th,
-td {
-  border: 1px solid #e2e8f0;
-  text-align: left;
-  padding: 8px;
 }
 </style>

@@ -6,6 +6,7 @@ import { ListTransactionsQueryDto } from "../transactions/dto/list-transactions-
 import { TransactionType } from "../transactions/transaction-type.enum";
 import { TransactionsService } from "../transactions/transactions.service";
 import { CreateFundDto } from "./dto/create-fund.dto";
+import { MonthlyFlowQueryDto } from "./dto/monthly-flow-query.dto";
 import { UpdateFundDto } from "./dto/update-fund.dto";
 import { FundsRepository } from "./funds.repository";
 
@@ -104,5 +105,10 @@ export class FundsService {
   public async getTransactions(userId: string, fundId: string, query: ListTransactionsQueryDto) {
     await this.fundsRepository.ensureFundExists(userId, fundId);
     return this.fundsRepository.getFundTransactions(userId, fundId, query);
+  }
+
+  public async getMonthlyFlow(userId: string, fundId: string, query: MonthlyFlowQueryDto) {
+    await this.fundsRepository.ensureFundExists(userId, fundId);
+    return this.fundsRepository.getFundMonthlyFlow(userId, fundId, query);
   }
 }

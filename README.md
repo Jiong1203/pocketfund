@@ -67,6 +67,7 @@
   - `POST /funds/:id/adjustments`
   - `GET /funds/:id/balance`
   - `GET /funds/:id/transactions?page=1&pageSize=20&type=TOP_UP&startAt=2026-01-01T00:00:00.000Z&endAt=2026-12-31T23:59:59.999Z`
+  - `GET /funds/:id/monthly-flow?startAt=2026-01-01T00:00:00.000Z&endAt=2026-12-31T23:59:59.999Z`
 - Scheduled Top-ups
   - `POST /schedules/top-ups`
   - `GET /schedules/top-ups`
@@ -87,8 +88,14 @@ All non-auth endpoints require `Authorization: Bearer <accessToken>`.
 - Stack: Vue 3 + TypeScript + Vue Router + Vite
 - Current pages:
   - `登入 / 註冊` 頁
-  - `儀表板`（帳戶、基金、交易新增與交易查詢）
+  - `儀表板`（帳戶、基金、交易新增、交易查詢）
+  - `基金圖表中心`（每月儲值/支出聚合圖）
 - API proxy: Vite forwards `/auth`, `/accounts`, `/funds`, `/schedules` to backend `http://localhost:3000`
+- UI upgrades:
+  - centralized API types in `frontend/src/types/api.ts`
+  - API service layer in `frontend/src/services/pocketfund.ts`
+  - reusable components in `frontend/src/components/*`
+  - ECharts chart component `FundFlowChart.vue` (loaded on chart page)
 
 ## Observability
 

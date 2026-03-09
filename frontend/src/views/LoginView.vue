@@ -1,16 +1,9 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { useRouter } from "vue-router";
-import { api, ApiError } from "../lib/api";
+import { ApiError } from "../lib/api";
 import { setAccessToken } from "../lib/session";
-
-interface AuthResult {
-  accessToken: string;
-  user: {
-    id: string;
-    email: string;
-  };
-}
+import { pocketfundApi } from "../services/pocketfund";
 
 const router = useRouter();
 const email = ref("");
@@ -23,11 +16,10 @@ async function submit(): Promise<void> {
   loading.value = true;
   errorMessage.value = "";
   try {
-    const path = mode.value === "login" ? "/auth/login" : "/auth/register";
-    const data = await api.post<AuthResult>(path, {
-      email: email.value,
-      password: password.value
-    }, false);
+    const data =
+      mode.value === "login"
+        ? await pocketfundApi.login(email.value, password.value)
+        : await pocketfundApi.register(email.value, password.value);
     setAccessToken(data.accessToken);
     await router.push({ name: "dashboard" });
   } catch (error) {

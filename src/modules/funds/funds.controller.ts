@@ -14,6 +14,7 @@ import { AuthUser } from "../auth/auth.types";
 import { CreateFundTransactionDto } from "../transactions/dto/create-fund-transaction.dto";
 import { ListTransactionsQueryDto } from "../transactions/dto/list-transactions-query.dto";
 import { CreateFundDto } from "./dto/create-fund.dto";
+import { MonthlyFlowQueryDto } from "./dto/monthly-flow-query.dto";
 import { UpdateFundDto } from "./dto/update-fund.dto";
 import { FundsService } from "./funds.service";
 
@@ -94,5 +95,14 @@ export class FundsController {
     @Query() query: ListTransactionsQueryDto
   ) {
     return { data: await this.fundsService.getTransactions(user.id, params.id, query) };
+  }
+
+  @Get(":id/monthly-flow")
+  public async getMonthlyFlow(
+    @CurrentUser() user: AuthUser,
+    @Param() params: FundParamDto,
+    @Query() query: MonthlyFlowQueryDto
+  ) {
+    return { data: await this.fundsService.getMonthlyFlow(user.id, params.id, query) };
   }
 }

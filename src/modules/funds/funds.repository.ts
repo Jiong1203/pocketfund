@@ -3,6 +3,7 @@ import { AppException } from "../../common/errors/app-exception";
 import { DatabaseService } from "../../common/database/database.service";
 import { ListTransactionsQueryDto } from "../transactions/dto/list-transactions-query.dto";
 import { TransactionRecord } from "../transactions/transactions.types";
+import { MonthlyFlowQueryDto } from "./dto/monthly-flow-query.dto";
 import { CreateFundDto } from "./dto/create-fund.dto";
 import { UpdateFundDto } from "./dto/update-fund.dto";
 
@@ -25,6 +26,12 @@ interface FundRow {
 
 interface CountRow {
   total: string;
+}
+
+interface MonthlyFlowRow {
+  month: string;
+  top_up: string;
+  expense: string;
 }
 
 @Injectable()
@@ -201,5 +208,44 @@ export class FundsRepository {
         total
       }
     };
+  }
+
+  public async getFundMonthlyFlow(
+    userId: string,
+    fundId: string,
+    query: MonthlyFlowQueryDto
+  ): Promise<Array<{ month: string; topUp: number; expense: number }>> {
+    const filters: string[] = ["user_id = $1", "fund_id = $2"];
+    const values: unknown[] = [userId, fundId];
+
+    if (query.startAt) {
+      values.push(query.startAt);
+      filters.push(`occurred_at >= $${values.length}::timestamptz`);
+    }
+    if (query.endAt) {
+      values.push(query.endAt);
+      filters.push(`occurred_at <= $${values.length}::timestamptz`);
+    }
+
+    const whereClause = filters.join(" and ");
+    const result = await this.db.query<MonthlyFlowRow>(
+      `
+      select
+        to_char(date_trunc('month', occurred_at), 'YYYY-MM') as month,
+        coalesce(sum(case when type = 'TOP_UP' then amount else 0 end), 0)::numeric(14,2) as top_up,
+        coalesce(sum(case when type = 'EXPENSE' then abs(amount) else 0 end), 0)::numeric(14,2) as expense
+      from transactions
+      where ${whereClause}
+      group by 1
+      order by 1 asc
+      `,
+      values
+    );
+
+    return result.rows.map((row) => ({
+      month: row.month,
+      topUp: Number(row.top_up),
+      expense: Number(row.expense)
+    }));
   }
 }
