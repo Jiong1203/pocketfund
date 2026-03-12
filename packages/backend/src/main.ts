@@ -1,3 +1,4 @@
+import "dotenv/config";
 import "reflect-metadata";
 import { BadRequestException, ValidationPipe } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
