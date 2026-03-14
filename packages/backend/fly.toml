@@ -1,31 +1,33 @@
-# fly.toml - Backend configuration for pocketfund
-# 使用方式: fly launch --no-deploy (首次) 或 fly deploy (更新)
+# fly.toml app configuration file generated for pocketfund-backend on 2026-03-15T00:21:36+08:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
 
-app = "pocketfund-backend"  # 修改成你想要的應用名稱
-primary_region = "sin"      # Singapore (接近台灣), 或 "nrt" (Tokyo), "hkg" (Hong Kong)
+app = 'pocketfund-backend'
+primary_region = 'sin'
 
 [build]
 
 [env]
-  PORT = "3000"
-  NODE_ENV = "production"
+  NODE_ENV = 'production'
+  PORT = '3000'
 
 [http_service]
   internal_port = 3000
   force_https = true
-  auto_stop_machines = false
+  auto_stop_machines = 'off'
   auto_start_machines = true
   min_machines_running = 1
-  processes = ["app"]
+  processes = ['app']
 
   [[http_service.checks]]
-    grace_period = "10s"
-    interval = "30s"
-    method = "GET"
-    timeout = "5s"
-    path = "/health"
+    interval = '30s'
+    timeout = '5s'
+    grace_period = '10s'
+    method = 'GET'
+    path = '/health'
 
 [[vm]]
-  memory = "256mb"
-  cpu_kind = "shared"
+  memory = '256mb'
   cpus = 1
+  memory_mb = 256
