@@ -1,16 +1,21 @@
 :root {
   font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", Arial, sans-serif;
-  --bg-color: #f5f7fb;
+  --bg-color: #f8fafc;
   --surface-color: #ffffff;
-  --surface-muted-color: #f2f5fb;
+  --surface-muted-color: #f1f5f9;
   --text-color: #0f172a;
-  --text-muted-color: #4e5968;
-  --primary-color: #1f6feb;
-  --primary-contrast: #ffffff;
-  --border-color: #c9d4e5;
-  --border-strong-color: #8fa2bf;
-  --success-color: #027a48;
-  --error-color: #b42318;
+  --text-muted-color: #64748b;
+  --primary-color: #7af5e0;
+  --primary-contrast: #0f172a;
+  --border-color: #e2e8f0;
+  --border-strong-color: #cbd5e1;
+  --success-color: #10b981;
+  --error-color: #ef4444;
+  --focus-ring-color: rgba(122, 245, 224, 0.4);
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+  --radius-md: 12px;
+  --transition-fast: all 0.2s ease;
 
   color: var(--text-color);
   background: var(--bg-color);
@@ -22,17 +27,18 @@
 }
 
 [data-theme="dark"] {
-  --bg-color: #0f172a;
-  --surface-color: #111b2e;
-  --surface-muted-color: #1a2740;
-  --text-color: #e8eefc;
-  --text-muted-color: #b8c4dc;
-  --primary-color: #3b82f6;
+  --bg-color: #050505;
+  --surface-color: #121212;
+  --surface-muted-color: #1a1a1a;
+  --text-color: #ffffff;
+  --text-muted-color: #a0a0a0;
+  --primary-color: #e60000;
   --primary-contrast: #ffffff;
-  --border-color: #2d3d5b;
-  --border-strong-color: #6d84ad;
-  --success-color: #34d399;
-  --error-color: #f87171;
+  --border-color: #2a2a2a;
+  --border-strong-color: #444444;
+  --success-color: #10b981;
+  --error-color: #ff3333;
+  --focus-ring-color: rgba(230, 0, 0, 0.4);
 }
 
 * {
@@ -44,4 +50,15 @@ body {
   min-width: 320px;
   background: var(--bg-color);
   color: var(--text-color);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+input, select, button, textarea {
+  transition: var(--transition-fast);
+}
+
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px var(--focus-ring-color);
 }

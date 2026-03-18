@@ -33,10 +33,23 @@ table {
   border-collapse: collapse;
 }
 
-th,
-td {
-  border: 1px solid var(--border-color);
+th, td {
+  border-bottom: 1px solid var(--border-color);
   text-align: left;
-  padding: 8px;
+  padding: 12px 16px;
+}
+
+th {
+  background: var(--surface-muted-color);
+  font-weight: 600;
+  color: var(--text-muted-color);
+}
+
+tbody tr {
+  transition: var(--transition-fast);
+}
+
+tbody tr:hover {
+  background: var(--surface-muted-color);
 }
 </style>

@@ -73,8 +73,9 @@ async function submit(): Promise<void> {
   max-width: 420px;
   background: var(--surface-color);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
-  padding: 20px;
+  border-radius: var(--radius-lg, 16px);
+  padding: 32px 24px;
+  box-shadow: var(--shadow-md);
 }
 
 h1 {
@@ -89,21 +90,27 @@ p {
 .tabs {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  margin-bottom: 12px;
+  gap: 4px;
+  margin-bottom: 24px;
+  background: var(--surface-muted-color);
+  padding: 4px;
+  border-radius: var(--radius-md, 12px);
 }
 
 .tabs button {
-  border: 1px solid var(--border-strong-color);
-  background: var(--surface-muted-color);
-  color: var(--text-color);
-  font-weight: 700;
+  border: none;
+  background: transparent;
+  color: var(--text-muted-color);
+  font-weight: 600;
+  border-radius: 8px;
+  padding: 8px;
 }
 
 .tabs button.active {
-  background: var(--primary-color);
+  background: var(--surface-color);
   color: var(--primary-contrast);
-  border-color: var(--primary-color);
+  box-shadow: var(--shadow-sm);
+  border-radius: 8px;
 }
 
 form {
@@ -118,20 +125,27 @@ label {
 }
 
 input {
-  padding: 10px;
+  padding: 12px;
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: var(--radius-md, 12px);
   background: var(--surface-color);
   color: var(--text-color);
 }
 
-button {
-  padding: 10px;
+button[type="submit"] {
+  padding: 12px;
   border: 1px solid var(--primary-color);
-  border-radius: 8px;
+  border-radius: var(--radius-md, 12px);
   background: var(--primary-color);
   color: var(--primary-contrast);
   cursor: pointer;
+  font-weight: 600;
+  margin-top: 8px;
+}
+
+button[type="submit"]:hover {
+  filter: brightness(0.95);
+  box-shadow: var(--shadow-sm);
 }
 
 .error {

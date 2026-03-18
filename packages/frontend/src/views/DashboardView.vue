@@ -266,18 +266,21 @@ onMounted(async () => {
 
 <style scoped>
 .dashboard {
-  padding: 16px;
+  padding: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 .top {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: 24px;
 }
 
 .top h1 {
   margin: 0;
+  font-size: 28px;
 }
 
 .top p {
@@ -287,13 +290,13 @@ onMounted(async () => {
 
 .top-actions {
   display: flex;
-  gap: 8px;
+  gap: 12px;
 }
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 24px;
 }
 
 .wide {
@@ -302,19 +305,20 @@ onMounted(async () => {
 
 form {
   display: grid;
-  gap: 8px;
+  gap: 12px;
 }
 
 .inline {
   grid-template-columns: repeat(3, minmax(120px, 1fr)) auto;
+  align-items: center;
 }
 
 input,
 select,
 button {
-  padding: 8px;
+  padding: 10px 14px;
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: var(--radius-md, 12px);
   background: var(--surface-color);
   color: var(--text-color);
 }
@@ -324,17 +328,23 @@ button {
   color: var(--primary-contrast);
   border-color: var(--primary-color);
   cursor: pointer;
+  font-weight: 600;
+}
+
+button:hover {
+  filter: brightness(0.95);
+  box-shadow: var(--shadow-sm);
 }
 
 ul {
-  margin: 10px 0 0;
-  padding-left: 20px;
+  margin: 16px 0 0;
+  padding-left: 24px;
 }
 
 .pager {
   display: flex;
-  gap: 8px;
+  gap: 12px;
   align-items: center;
-  margin: 10px 0;
+  margin: 16px 0;
 }
 </style>
