@@ -49,7 +49,7 @@ async function submit(): Promise<void> {
         </label>
         <label>
           密碼
-          <input v-model="password" type="password" minlength="8" required placeholder="至少 8 碼" />
+          <input v-model="password" type="password" minlength="6" required placeholder="至少 6 碼" />
         </label>
         <button type="submit" :disabled="loading">
           {{ loading ? "處理中..." : mode === "login" ? "登入" : "建立帳號" }}
