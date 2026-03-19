@@ -28,7 +28,7 @@ export interface Fund {
 
 export interface TransactionRecord {
   id: string;
-  type: "TOP_UP" | "EXPENSE" | "ADJUST" | "TRANSFER";
+  type: "TOP_UP" | "EXPENSE" | "TRANSFER";
   amount: string;
   description: string | null;
   occurred_at: string;
@@ -42,7 +42,7 @@ export interface PagedTransactions {
 export interface TransactionQuery {
   page?: number;
   pageSize?: number;
-  type?: "TOP_UP" | "EXPENSE" | "ADJUST" | "TRANSFER" | "";
+  type?: "TOP_UP" | "EXPENSE" | "TRANSFER" | "";
   startAt?: string;
   endAt?: string;
 }

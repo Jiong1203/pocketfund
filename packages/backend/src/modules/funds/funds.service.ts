@@ -81,21 +81,6 @@ export class FundsService {
     });
   }
 
-  public async adjust(userId: string, fundId: string, dto: CreateFundTransactionDto) {
-    await this.fundsRepository.ensureFundExists(userId, fundId);
-    await this.accountsRepository.ensureOwned(userId, dto.accountId);
-    return this.transactionsService.createLedgerTransaction({
-      userId,
-      fundId,
-      accountId: dto.accountId,
-      type: TransactionType.ADJUST,
-      amountAbs: dto.amount,
-      description: dto.description,
-      occurredAt: dto.occurredAt,
-      idempotencyKey: dto.idempotencyKey
-    });
-  }
-
   public async getBalance(userId: string, fundId: string): Promise<{ fundId: string; balance: number }> {
     await this.fundsRepository.ensureFundExists(userId, fundId);
     const balance = await this.fundsRepository.getFundBalance(userId, fundId);

@@ -47,6 +47,12 @@ export const pocketfundApi = {
   listFundTransactions(fundId: string, query: TransactionQuery): Promise<PagedTransactions> {
     return api.get<PagedTransactions>(`/funds/${fundId}/transactions${buildTransactionQuery(query)}`);
   },
+  updateTransaction(id: string, data: { type?: string; amount?: number; description?: string; occurredAt?: string }): Promise<unknown> {
+    return api.patch(`/transactions/${id}`, data);
+  },
+  deleteTransaction(id: string): Promise<void> {
+    return api.delete(`/transactions/${id}`);
+  },
   listFundMonthlyFlow(
     fundId: string,
     query: Pick<TransactionQuery, "startAt" | "endAt"> = {}

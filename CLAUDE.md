@@ -19,7 +19,7 @@ Policy:
 - **Ledger First**: `transaction` is the single source of truth.
 - **Balance by Query**: fund balance is always computed from transactions; do not persist `fund_balance`.
 - **Decouple Account and Fund**: `account` means where money is stored; `fund` means what money is for.
-- **Append-Only Preferred**: write new records instead of overwriting historical transactions.
+- **Edit-Friendly**: direct edit and delete on transactions is allowed. PocketFund is a personal app — users should be able to fix mistakes directly without learning special correction patterns.
 - **Traceability**: every transaction must be traceable by source, time, operator, and description.
 - **Async-First Development**: design long-running, retryable, or heavy workloads as asynchronous jobs by default.
 
@@ -51,7 +51,6 @@ Rules:
 - Use action endpoints for domain operations:
   - `POST /funds/:id/top-ups`
   - `POST /funds/:id/expenses`
-  - `POST /funds/:id/adjustments`
 
 ### 3.2 Code Naming
 
@@ -64,7 +63,6 @@ Rules:
 
 - `TOP_UP`
 - `EXPENSE`
-- `ADJUST`
 - `TRANSFER`
 
 ---
@@ -86,7 +84,7 @@ Data integrity:
 
 - Keep amount sign rules consistent (for example: `TOP_UP > 0`, `EXPENSE < 0`).
 - Enforce illegal values with DB constraints/check constraints.
-- Never delete transaction history. Use `ADJUST` for corrections.
+- Users may edit or delete transactions directly; no special correction type is needed.
 
 ---
 
@@ -140,7 +138,7 @@ Phase 3 readiness requirements:
 ## 8) Validation and Security
 
 - All inputs must pass DTO/schema validation (type, range, required fields).
-- Amount cannot be 0 (unless explicitly allowed by `ADJUST` rules).
+- Amount cannot be 0.
 - Enforce least privilege: users can only access their own funds/accounts/transactions.
 - Record audit logs for critical operations (fund creation, manual adjustments, schedule disablement).
 
@@ -190,18 +188,43 @@ Minimum test coverage:
 - Do not place business logic in controllers.
 - Do not scatter SQL and rules across cron/job files.
 - Do not use floating-point numbers for money.
-- Do not delete historical transactions to hide ledger history.
+- Do not hide or silently discard transactions without user intent; edit and delete are allowed but must be explicit user actions.
 
 ---
 
 ## 13) Recommended MVP Delivery Order
 
 1. Create `funds/accounts/transactions` schema + migrations.
-2. Implement transaction write APIs (`top-up`, `expense`, `adjust`).
+2. Implement transaction write APIs (`top-up`, `expense`).
 3. Implement fund balance and fund detail query APIs.
 4. Add monthly top-up scheduling (cron trigger + service execution).
 5. Add chart/query APIs (monthly income/expense and balance trend).
 6. Add tests and baseline monitoring.
+
+---
+
+## 14) Frontend Vue File Structure
+
+All `.vue` files must follow this block order:
+
+1. `<template>` — HTML markup at the **top**
+2. `<script setup lang="ts">` — JavaScript/TypeScript logic in the **middle**
+3. `<style scoped>` — CSS at the **bottom**
+
+Example:
+```vue
+<template>
+  <!-- markup here -->
+</template>
+
+<script setup lang="ts">
+// logic here
+</script>
+
+<style scoped>
+/* styles here */
+</style>
+```
 
 ---
 

@@ -17,6 +17,12 @@ const transactions = ref<PagedTransactions | null>(null);
 const message = ref("");
 const errorMessage = ref("");
 
+const showAccountDialog = ref(false);
+const showFundDialog = ref(false);
+const showTxDialog = ref(false);
+const showEditTxDialog = ref(false);
+const showDeleteConfirm = ref(false);
+
 const accountForm = reactive({
   name: "",
   type: "salary" as "salary" | "saving"
@@ -35,9 +41,19 @@ const txForm = reactive({
   description: ""
 });
 
+const editTxForm = reactive({
+  id: "",
+  type: "" as "TOP_UP" | "EXPENSE" | "TRANSFER",
+  amount: 0,
+  description: "",
+  occurredAt: ""
+});
+
+const deletingTx = ref<{ id: string; description: string } | null>(null);
+
 const queryForm = reactive({
   fundId: "",
-  type: "" as "" | "TOP_UP" | "EXPENSE" | "ADJUST" | "TRANSFER",
+  type: "" as "" | "TOP_UP" | "EXPENSE" | "TRANSFER",
   page: 1,
   pageSize: 20
 });
@@ -88,6 +104,7 @@ async function createAccount(): Promise<void> {
     await pocketfundApi.createAccount(accountForm.name, accountForm.type);
     message.value = "帳戶建立成功";
     accountForm.name = "";
+    showAccountDialog.value = false;
     await loadBaseData();
   } catch (error) {
     onError(error);
@@ -101,6 +118,7 @@ async function createFund(): Promise<void> {
     message.value = "基金建立成功";
     fundForm.name = "";
     fundForm.cycleDay = 1;
+    showFundDialog.value = false;
     await loadBaseData();
   } catch (error) {
     onError(error);
@@ -128,6 +146,52 @@ async function submitTransaction(): Promise<void> {
     message.value = "交易新增成功";
     txForm.amount = 0;
     txForm.description = "";
+    showTxDialog.value = false;
+    await loadTransactions();
+  } catch (error) {
+    onError(error);
+  }
+}
+
+function openEditDialog(row: { id: string; type: "TOP_UP" | "EXPENSE" | "TRANSFER"; amount: string; description: string | null; occurred_at: string }): void {
+  editTxForm.id = row.id;
+  editTxForm.type = row.type;
+  editTxForm.amount = Math.abs(Number(row.amount));
+  editTxForm.description = row.description ?? "";
+  editTxForm.occurredAt = row.occurred_at.slice(0, 16);
+  showEditTxDialog.value = true;
+}
+
+async function saveEdit(): Promise<void> {
+  clearFlash();
+  try {
+    await pocketfundApi.updateTransaction(editTxForm.id, {
+      type: editTxForm.type || undefined,
+      amount: editTxForm.amount || undefined,
+      description: editTxForm.description || undefined,
+      occurredAt: editTxForm.occurredAt ? new Date(editTxForm.occurredAt).toISOString() : undefined
+    });
+    message.value = "交易更新成功";
+    showEditTxDialog.value = false;
+    await loadTransactions();
+  } catch (error) {
+    onError(error);
+  }
+}
+
+function openDeleteConfirm(row: { id: string; description: string | null }): void {
+  deletingTx.value = { id: row.id, description: row.description ?? "（無說明）" };
+  showDeleteConfirm.value = true;
+}
+
+async function confirmDelete(): Promise<void> {
+  if (!deletingTx.value) return;
+  clearFlash();
+  try {
+    await pocketfundApi.deleteTransaction(deletingTx.value.id);
+    message.value = "交易已刪除";
+    showDeleteConfirm.value = false;
+    deletingTx.value = null;
     await loadTransactions();
   } catch (error) {
     onError(error);
@@ -177,8 +241,8 @@ onMounted(async () => {
         <p>Vue 3（zh-tw）前端骨架</p>
       </div>
       <div class="top-actions">
-        <button type="button" @click="$router.push({ name: 'charts' })">查看基金圖表</button>
-        <button @click="logout">登出</button>
+        <button type="button" class="btn-secondary" @click="$router.push({ name: 'charts' })">查看基金圖表</button>
+        <button type="button" class="btn-ghost" @click="logout">登出</button>
       </div>
     </header>
 
@@ -187,56 +251,39 @@ onMounted(async () => {
     <FlashMessage v-if="errorMessage" type="err" :text="errorMessage" />
 
     <div class="grid">
-      <AppCard title="建立帳戶">
-        <form @submit.prevent="createAccount">
-          <input v-model="accountForm.name" placeholder="帳戶名稱" required />
-          <select v-model="accountForm.type">
-            <option value="salary">薪轉戶</option>
-            <option value="saving">儲蓄戶</option>
-          </select>
-          <button type="submit">新增帳戶</button>
-        </form>
-        <ul>
-          <li v-for="account in accounts" :key="account.id">
-            {{ account.name }}（{{ account.type }}）
+      <!-- 帳戶卡片 -->
+      <AppCard title="帳戶">
+        <template #actions>
+          <button type="button" class="btn-add" @click="showAccountDialog = true">＋ 新增帳戶</button>
+        </template>
+        <ul v-if="accounts.length" class="item-list">
+          <li v-for="account in accounts" :key="account.id" class="item-row">
+            <span class="item-name">{{ account.name }}</span>
+            <span class="item-badge">{{ account.type === 'salary' ? '薪轉戶' : '儲蓄戶' }}</span>
           </li>
         </ul>
+        <p v-else class="empty-hint">尚無帳戶，請新增一個。</p>
       </AppCard>
 
-      <AppCard title="建立基金">
-        <form @submit.prevent="createFund">
-          <input v-model="fundForm.name" placeholder="基金名稱" required />
-          <input v-model.number="fundForm.cycleDay" type="number" min="1" max="31" required />
-          <button type="submit">新增基金</button>
-        </form>
-        <ul>
-          <li v-for="fund in funds" :key="fund.id">
-            {{ fund.name }}（每月 {{ fund.cycle_day }} 日）
+      <!-- 基金卡片 -->
+      <AppCard title="基金">
+        <template #actions>
+          <button type="button" class="btn-add" @click="showFundDialog = true">＋ 新增基金</button>
+        </template>
+        <ul v-if="funds.length" class="item-list">
+          <li v-for="fund in funds" :key="fund.id" class="item-row">
+            <span class="item-name">{{ fund.name }}</span>
+            <span class="item-badge">每月 {{ fund.cycle_day }} 日</span>
           </li>
         </ul>
+        <p v-else class="empty-hint">尚無基金，請新增一個。</p>
       </AppCard>
 
-      <AppCard title="新增交易">
-        <form @submit.prevent="submitTransaction">
-          <select v-model="txForm.fundId" required>
-            <option disabled value="">請選擇基金</option>
-            <option v-for="fund in funds" :key="fund.id" :value="fund.id">{{ fund.name }}</option>
-          </select>
-          <select v-model="txForm.accountId" required>
-            <option disabled value="">請選擇帳戶</option>
-            <option v-for="account in accounts" :key="account.id" :value="account.id">{{ account.name }}</option>
-          </select>
-          <select v-model="txForm.actionType">
-            <option value="top-ups">儲值（TOP_UP）</option>
-            <option value="expenses">支出（EXPENSE）</option>
-          </select>
-          <input v-model.number="txForm.amount" type="number" min="0.01" step="0.01" placeholder="金額" required />
-          <input v-model="txForm.description" placeholder="說明（可選）" />
-          <button type="submit">送出交易</button>
-        </form>
-      </AppCard>
-
+      <!-- 交易查詢 -->
       <AppCard title="交易查詢" class="wide">
+        <template #actions>
+          <button type="button" class="btn-add" @click="showTxDialog = true">＋ 新增交易</button>
+        </template>
         <form class="inline" @submit.prevent="loadTransactions">
           <select v-model="queryForm.fundId" required>
             <option disabled value="">請選擇基金</option>
@@ -244,23 +291,188 @@ onMounted(async () => {
           </select>
           <select v-model="queryForm.type">
             <option value="">全部類型</option>
-            <option value="TOP_UP">TOP_UP</option>
-            <option value="EXPENSE">EXPENSE</option>
-            <option value="ADJUST">ADJUST</option>
+            <option value="TOP_UP">儲值</option>
+            <option value="EXPENSE">支出</option>
+            <option value="ADJUST">調整</option>
+            <option value="TRANSFER">轉帳</option>
           </select>
           <input v-model.number="queryForm.pageSize" type="number" min="1" max="100" />
           <button type="submit">查詢</button>
         </form>
 
         <div class="pager">
-          <button type="button" @click="prevPage">上一頁</button>
-          <span>{{ currentPageText }}</span>
-          <button type="button" @click="nextPage">下一頁</button>
+          <button type="button" class="btn-ghost" @click="prevPage">← 上一頁</button>
+          <span class="pager-text">{{ currentPageText }}</span>
+          <button type="button" class="btn-ghost" @click="nextPage">下一頁 →</button>
         </div>
 
-        <TransactionTable :rows="transactions?.items ?? []" />
+        <TransactionTable
+          :rows="transactions?.items ?? []"
+          @edit="openEditDialog"
+          @delete="openDeleteConfirm"
+        />
       </AppCard>
     </div>
+
+    <!-- Dialog: 建立帳戶 -->
+    <Teleport to="body">
+      <div v-if="showAccountDialog" class="dialog-backdrop" @click.self="showAccountDialog = false">
+        <div class="dialog">
+          <div class="dialog-head">
+            <h3>建立帳戶</h3>
+            <button type="button" class="btn-close" @click="showAccountDialog = false">✕</button>
+          </div>
+          <form @submit.prevent="createAccount">
+            <label class="field">
+              <span>帳戶名稱</span>
+              <input v-model="accountForm.name" placeholder="例：玉山薪轉戶" required />
+            </label>
+            <label class="field">
+              <span>帳戶類型</span>
+              <select v-model="accountForm.type">
+                <option value="salary">薪轉戶</option>
+                <option value="saving">儲蓄戶</option>
+              </select>
+            </label>
+            <div class="dialog-footer">
+              <button type="button" class="btn-ghost" @click="showAccountDialog = false">取消</button>
+              <button type="submit">建立帳戶</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- Dialog: 建立基金 -->
+    <Teleport to="body">
+      <div v-if="showFundDialog" class="dialog-backdrop" @click.self="showFundDialog = false">
+        <div class="dialog">
+          <div class="dialog-head">
+            <h3>建立基金</h3>
+            <button type="button" class="btn-close" @click="showFundDialog = false">✕</button>
+          </div>
+          <form @submit.prevent="createFund">
+            <label class="field">
+              <span>基金名稱</span>
+              <input v-model="fundForm.name" placeholder="例：生活費" required />
+            </label>
+            <label class="field">
+              <span>每月補充日（1–31）</span>
+              <input v-model.number="fundForm.cycleDay" type="number" min="1" max="31" required />
+            </label>
+            <div class="dialog-footer">
+              <button type="button" class="btn-ghost" @click="showFundDialog = false">取消</button>
+              <button type="submit">建立基金</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- Dialog: 編輯交易 -->
+    <Teleport to="body">
+      <div v-if="showEditTxDialog" class="dialog-backdrop" @click.self="showEditTxDialog = false">
+        <div class="dialog">
+          <div class="dialog-head">
+            <h3>編輯交易</h3>
+            <button type="button" class="btn-close" @click="showEditTxDialog = false">✕</button>
+          </div>
+          <form @submit.prevent="saveEdit">
+            <label class="field">
+              <span>交易類型</span>
+              <select v-model="editTxForm.type" required>
+                <option value="TOP_UP">儲值</option>
+                <option value="EXPENSE">支出</option>
+                  <option value="TRANSFER">轉帳</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>金額</span>
+              <input v-model.number="editTxForm.amount" type="number" min="0" step="1" required />
+            </label>
+            <label class="field">
+              <span>說明</span>
+              <input v-model="editTxForm.description" placeholder="例：三月份薪水" />
+            </label>
+            <label class="field">
+              <span>交易時間</span>
+              <input v-model="editTxForm.occurredAt" type="datetime-local" />
+            </label>
+            <div class="dialog-footer">
+              <button type="button" class="btn-ghost" @click="showEditTxDialog = false">取消</button>
+              <button type="submit">儲存變更</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- Confirm: 刪除交易 -->
+    <Teleport to="body">
+      <div v-if="showDeleteConfirm" class="dialog-backdrop" @click.self="showDeleteConfirm = false">
+        <div class="dialog dialog-sm">
+          <div class="dialog-head">
+            <h3>確認刪除</h3>
+            <button type="button" class="btn-close" @click="showDeleteConfirm = false">✕</button>
+          </div>
+          <p class="confirm-text">
+            確定要刪除這筆交易嗎？<br />
+            <span class="confirm-desc">{{ deletingTx?.description }}</span>
+          </p>
+          <div class="dialog-footer">
+            <button type="button" class="btn-ghost" @click="showDeleteConfirm = false">取消</button>
+            <button type="button" class="btn-danger" @click="confirmDelete">確認刪除</button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- Dialog: 新增交易 -->
+    <Teleport to="body">
+      <div v-if="showTxDialog" class="dialog-backdrop" @click.self="showTxDialog = false">
+        <div class="dialog">
+          <div class="dialog-head">
+            <h3>新增交易</h3>
+            <button type="button" class="btn-close" @click="showTxDialog = false">✕</button>
+          </div>
+          <form @submit.prevent="submitTransaction">
+            <label class="field">
+              <span>基金</span>
+              <select v-model="txForm.fundId" required>
+                <option disabled value="">請選擇基金</option>
+                <option v-for="fund in funds" :key="fund.id" :value="fund.id">{{ fund.name }}</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>帳戶</span>
+              <select v-model="txForm.accountId" required>
+                <option disabled value="">請選擇帳戶</option>
+                <option v-for="account in accounts" :key="account.id" :value="account.id">{{ account.name }}</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>交易類型</span>
+              <select v-model="txForm.actionType">
+                <option value="top-ups">儲值</option>
+                <option value="expenses">支出</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>金額</span>
+              <input v-model.number="txForm.amount" type="number" min="0" step="1" placeholder="0" required />
+            </label>
+            <label class="field">
+              <span>說明（可選）</span>
+              <input v-model="txForm.description" placeholder="例：三月份薪水" />
+            </label>
+            <div class="dialog-footer">
+              <button type="button" class="btn-ghost" @click="showTxDialog = false">取消</button>
+              <button type="submit">送出交易</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -271,6 +483,7 @@ onMounted(async () => {
   margin: 0 auto;
 }
 
+/* ── Header ── */
 .top {
   display: flex;
   justify-content: space-between;
@@ -293,6 +506,7 @@ onMounted(async () => {
   gap: 12px;
 }
 
+/* ── Grid ── */
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
@@ -303,32 +517,18 @@ onMounted(async () => {
   grid-column: 1 / -1;
 }
 
-form {
-  display: grid;
-  gap: 12px;
-}
-
-.inline {
-  grid-template-columns: repeat(3, minmax(120px, 1fr)) auto;
-  align-items: center;
-}
-
-input,
-select,
+/* ── Buttons ── */
 button {
-  padding: 10px 14px;
+  padding: 10px 16px;
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md, 12px);
-  background: var(--surface-color);
-  color: var(--text-color);
-}
-
-button {
   background: var(--primary-color);
   color: var(--primary-contrast);
   border-color: var(--primary-color);
   cursor: pointer;
   font-weight: 600;
+  font-size: 14px;
+  transition: var(--transition-fast);
 }
 
 button:hover {
@@ -336,15 +536,197 @@ button:hover {
   box-shadow: var(--shadow-sm);
 }
 
-ul {
-  margin: 16px 0 0;
-  padding-left: 24px;
+.btn-secondary {
+  background: var(--surface-color);
+  color: var(--text-color);
+  border-color: var(--border-color);
 }
 
+.btn-ghost {
+  background: transparent;
+  color: var(--text-muted-color);
+  border-color: transparent;
+}
+
+.btn-ghost:hover {
+  background: var(--surface-color);
+  color: var(--text-color);
+}
+
+.btn-add {
+  padding: 6px 12px;
+  font-size: 13px;
+  border-radius: var(--radius-md, 8px);
+}
+
+/* ── Item list inside cards ── */
+.item-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.item-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md, 10px);
+}
+
+.item-name {
+  font-weight: 500;
+}
+
+.item-badge {
+  font-size: 12px;
+  color: var(--text-muted-color);
+  background: color-mix(in srgb, var(--primary-color) 12%, transparent);
+  color: var(--primary-color);
+  padding: 2px 8px;
+  border-radius: 99px;
+}
+
+.empty-hint {
+  margin: 12px 0 0;
+  color: var(--text-muted-color);
+  font-size: 14px;
+}
+
+/* ── Query form ── */
+form.inline {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(120px, 1fr)) auto;
+  gap: 12px;
+  align-items: center;
+}
+
+input,
+select {
+  padding: 10px 14px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md, 12px);
+  background: var(--surface-color);
+  color: var(--text-color);
+  font-size: 14px;
+}
+
+/* ── Pager ── */
 .pager {
   display: flex;
   gap: 12px;
   align-items: center;
   margin: 16px 0;
+}
+
+.pager-text {
+  color: var(--text-muted-color);
+  font-size: 14px;
+}
+
+/* ── Dialog ── */
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  backdrop-filter: blur(2px);
+}
+
+.dialog {
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md, 16px);
+  padding: 28px;
+  width: 100%;
+  max-width: 440px;
+  box-shadow: var(--shadow-md);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.dialog-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dialog-head h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.btn-close {
+  background: transparent;
+  border-color: transparent;
+  color: var(--text-muted-color);
+  padding: 4px 8px;
+  font-size: 16px;
+}
+
+.btn-close:hover {
+  background: var(--surface-color);
+  color: var(--text-color);
+}
+
+.dialog form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--text-muted-color);
+}
+
+.field input,
+.field select {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.dialog-sm {
+  max-width: 360px;
+}
+
+.confirm-text {
+  margin: 0;
+  line-height: 1.6;
+  color: var(--text-color);
+}
+
+.confirm-desc {
+  color: var(--text-muted-color);
+  font-size: 13px;
+}
+
+.btn-danger {
+  background: #ef4444;
+  border-color: #ef4444;
+  color: #fff;
+}
+
+.btn-danger:hover {
+  filter: brightness(0.9);
 }
 </style>

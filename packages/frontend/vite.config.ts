@@ -10,6 +10,7 @@ export default defineConfig({
       "/auth": "http://localhost:3000",
       "/accounts": "http://localhost:3000",
       "/funds": "http://localhost:3000",
+      "/transactions": "http://localhost:3000",
       "/schedules": "http://localhost:3000"
     }
   }

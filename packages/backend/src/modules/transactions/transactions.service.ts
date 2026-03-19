@@ -5,6 +5,13 @@ import { TransactionType } from "./transaction-type.enum";
 import { TransactionsRepository } from "./transactions.repository";
 import { TransactionRecord } from "./transactions.types";
 
+interface UpdateTransactionParams {
+  type?: TransactionType;
+  amount?: number;
+  description?: string;
+  occurredAt?: string;
+}
+
 interface CreateLedgerTransactionParams {
   userId: string;
   fundId: string;
@@ -49,6 +56,39 @@ export class TransactionsService {
         );
       }
       throw error;
+    }
+  }
+
+  public async updateTransaction(
+    userId: string,
+    id: string,
+    params: UpdateTransactionParams
+  ): Promise<TransactionRecord> {
+    const existing = await this.transactionsRepository.findByIdAndUserId(id, userId);
+    if (!existing) {
+      throw new AppException(
+        { code: "LEDGER_NOT_FOUND", message: "Transaction not found." },
+        HttpStatus.NOT_FOUND
+      );
+    }
+
+    const updated = await this.transactionsRepository.updateTransaction(id, userId, params);
+    if (!updated) {
+      throw new AppException(
+        { code: "VALIDATION_NO_FIELDS", message: "No updatable fields provided." },
+        HttpStatus.BAD_REQUEST
+      );
+    }
+    return updated;
+  }
+
+  public async deleteTransaction(userId: string, id: string): Promise<void> {
+    const deleted = await this.transactionsRepository.deleteTransaction(id, userId);
+    if (!deleted) {
+      throw new AppException(
+        { code: "LEDGER_NOT_FOUND", message: "Transaction not found." },
+        HttpStatus.NOT_FOUND
+      );
     }
   }
 

@@ -74,15 +74,6 @@ export class FundsController {
     return { data: await this.fundsService.expense(user.id, params.id, dto) };
   }
 
-  @Post(":id/adjustments")
-  public async adjust(
-    @CurrentUser() user: AuthUser,
-    @Param() params: FundParamDto,
-    @Body() dto: CreateFundTransactionDto
-  ) {
-    return { data: await this.fundsService.adjust(user.id, params.id, dto) };
-  }
-
   @Get(":id/balance")
   public async getBalance(@CurrentUser() user: AuthUser, @Param() params: FundParamDto) {
     return { data: await this.fundsService.getBalance(user.id, params.id) };
