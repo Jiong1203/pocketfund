@@ -24,6 +24,7 @@ ENV NODE_ENV=production
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/public ./public
+COPY --from=build /app/migrations ./migrations
 COPY package*.json ./
 
 # Fly.io will set PORT automatically
