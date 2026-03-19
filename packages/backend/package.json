@@ -5,6 +5,7 @@
   "description": "Phase 2.5 async-first virtual fund ledger backend",
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "migrate": "ts-node --transpile-only src/migrate.ts",
     "start": "node dist/main.js",
     "dev": "npm run start:dev",
     "start:dev": "ts-node-dev --respawn --transpile-only src/main.ts",

@@ -8,6 +8,9 @@ primary_region = 'sin'
 
 [build]
 
+[deploy]
+  release_command = "node dist/migrate.js"
+
 [env]
   NODE_ENV = 'production'
   PORT = '3000'
