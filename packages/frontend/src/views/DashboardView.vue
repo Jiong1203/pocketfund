@@ -4,6 +4,7 @@ import { useRouter } from "vue-router";
 import AppCard from "../components/AppCard.vue";
 import FlashMessage from "../components/FlashMessage.vue";
 import TransactionTable from "../components/TransactionTable.vue";
+import UserManualModal from "../components/UserManualModal.vue";
 import { ApiError } from "../lib/api";
 import { clearAccessToken } from "../lib/session";
 import { pocketfundApi } from "../services/pocketfund";
@@ -22,6 +23,7 @@ const showFundDialog = ref(false);
 const showTxDialog = ref(false);
 const showEditTxDialog = ref(false);
 const showDeleteConfirm = ref(false);
+const showManual = ref(false);
 
 const accountForm = reactive({
   name: "",
@@ -242,6 +244,7 @@ onMounted(async () => {
       </div>
       <div class="top-actions">
         <button type="button" class="btn-secondary" @click="$router.push({ name: 'charts' })">查看基金圖表</button>
+        <button type="button" class="btn-secondary" @click="showManual = true">使用手冊</button>
         <button type="button" class="btn-ghost" @click="logout">登出</button>
       </div>
     </header>
@@ -426,6 +429,9 @@ onMounted(async () => {
         </div>
       </div>
     </Teleport>
+
+    <!-- 使用手冊 -->
+    <UserManualModal v-model="showManual" />
 
     <!-- Dialog: 新增交易 -->
     <Teleport to="body">
