@@ -53,6 +53,9 @@ const editTxForm = reactive({
 
 const deletingTx = ref<{ id: string; description: string } | null>(null);
 
+const showDeleteAccountConfirm = ref(false);
+const deletingAccount = ref<{ id: string; name: string } | null>(null);
+
 const queryForm = reactive({
   fundId: "",
   type: "" as "" | "TOP_UP" | "EXPENSE" | "TRANSFER",
@@ -200,6 +203,26 @@ async function confirmDelete(): Promise<void> {
   }
 }
 
+function openDeleteAccountConfirm(account: { id: string; name: string }): void {
+  deletingAccount.value = account;
+  showDeleteAccountConfirm.value = true;
+}
+
+async function confirmDeleteAccount(): Promise<void> {
+  if (!deletingAccount.value) return;
+  clearFlash();
+  try {
+    await pocketfundApi.deleteAccount(deletingAccount.value.id);
+    message.value = "帳戶已刪除";
+    showDeleteAccountConfirm.value = false;
+    deletingAccount.value = null;
+    await loadBaseData();
+  } catch (error) {
+    onError(error);
+    showDeleteAccountConfirm.value = false;
+  }
+}
+
 async function loadTransactions(): Promise<void> {
   if (!queryForm.fundId) return;
   clearFlash();
@@ -263,6 +286,7 @@ onMounted(async () => {
           <li v-for="account in accounts" :key="account.id" class="item-row">
             <span class="item-name">{{ account.name }}</span>
             <span class="item-badge">{{ account.type === 'salary' ? '薪轉戶' : '儲蓄戶' }}</span>
+            <button type="button" class="btn-icon-danger" title="刪除帳戶" @click="openDeleteAccountConfirm(account)">✕</button>
           </li>
         </ul>
         <p v-else class="empty-hint">尚無帳戶，請新增一個。</p>
@@ -432,6 +456,26 @@ onMounted(async () => {
 
     <!-- 使用手冊 -->
     <UserManualModal v-model="showManual" />
+
+    <!-- Confirm: 刪除帳戶 -->
+    <Teleport to="body">
+      <div v-if="showDeleteAccountConfirm" class="dialog-backdrop" @click.self="showDeleteAccountConfirm = false">
+        <div class="dialog dialog-sm">
+          <div class="dialog-head">
+            <h3>確認刪除帳戶</h3>
+            <button type="button" class="btn-close" @click="showDeleteAccountConfirm = false">✕</button>
+          </div>
+          <p class="confirm-text">
+            確定要刪除帳戶 <strong>{{ deletingAccount?.name }}</strong> 嗎？<br />
+            <span class="confirm-desc">若該帳戶已有交易或排程紀錄，將無法刪除。</span>
+          </p>
+          <div class="dialog-footer">
+            <button type="button" class="btn-ghost" @click="showDeleteAccountConfirm = false">取消</button>
+            <button type="button" class="btn-danger" @click="confirmDeleteAccount">確認刪除</button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
 
     <!-- Dialog: 新增交易 -->
     <Teleport to="body">
@@ -734,5 +778,22 @@ select {
 
 .btn-danger:hover {
   filter: brightness(0.9);
+}
+
+.btn-icon-danger {
+  background: transparent;
+  border-color: transparent;
+  color: var(--text-muted-color);
+  padding: 2px 6px;
+  font-size: 12px;
+  margin-left: auto;
+}
+
+.btn-icon-danger:hover {
+  background: color-mix(in srgb, #ef4444 12%, transparent);
+  color: #ef4444;
+  border-color: transparent;
+  box-shadow: none;
+  filter: none;
 }
 </style>

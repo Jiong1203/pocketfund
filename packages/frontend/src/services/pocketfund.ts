@@ -32,6 +32,9 @@ export const pocketfundApi = {
   createAccount(name: string, type: "salary" | "saving"): Promise<Account> {
     return api.post<Account>("/accounts", { name, type });
   },
+  deleteAccount(id: string): Promise<void> {
+    return api.delete(`/accounts/${id}`);
+  },
   listFunds(): Promise<Fund[]> {
     return api.get<Fund[]>("/funds");
   },
