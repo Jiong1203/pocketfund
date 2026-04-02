@@ -4,6 +4,7 @@ import { useRouter } from "vue-router";
 import AppCard from "../components/AppCard.vue";
 import FlashMessage from "../components/FlashMessage.vue";
 import TransactionTable from "../components/TransactionTable.vue";
+import UserManualModal from "../components/UserManualModal.vue";
 import { ApiError } from "../lib/api";
 import { clearAccessToken } from "../lib/session";
 import { pocketfundApi } from "../services/pocketfund";
@@ -22,6 +23,7 @@ const showFundDialog = ref(false);
 const showTxDialog = ref(false);
 const showEditTxDialog = ref(false);
 const showDeleteConfirm = ref(false);
+const showManual = ref(false);
 
 const accountForm = reactive({
   name: "",
@@ -33,12 +35,19 @@ const fundForm = reactive({
   cycleDay: 1
 });
 
+function todayLocalDate(): string {
+  const now = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+}
+
 const txForm = reactive({
   fundId: "",
   accountId: "",
   actionType: "top-ups" as "top-ups" | "expenses",
   amount: 0,
-  description: ""
+  description: "",
+  occurredAt: todayLocalDate()
 });
 
 const editTxForm = reactive({
@@ -50,6 +59,9 @@ const editTxForm = reactive({
 });
 
 const deletingTx = ref<{ id: string; description: string } | null>(null);
+
+const showDeleteAccountConfirm = ref(false);
+const deletingAccount = ref<{ id: string; name: string } | null>(null);
 
 const queryForm = reactive({
   fundId: "",
@@ -128,24 +140,28 @@ async function createFund(): Promise<void> {
 async function submitTransaction(): Promise<void> {
   clearFlash();
   try {
+    const occurredAt = txForm.occurredAt ? new Date(`${txForm.occurredAt}T00:00:00`).toISOString() : undefined;
     if (txForm.actionType === "top-ups") {
       await pocketfundApi.createTopUp(
         txForm.fundId,
         txForm.accountId,
         Number(txForm.amount),
-        txForm.description || undefined
+        txForm.description || undefined,
+        occurredAt
       );
     } else {
       await pocketfundApi.createExpense(
         txForm.fundId,
         txForm.accountId,
         Number(txForm.amount),
-        txForm.description || undefined
+        txForm.description || undefined,
+        occurredAt
       );
     }
     message.value = "交易新增成功";
     txForm.amount = 0;
     txForm.description = "";
+    txForm.occurredAt = todayLocalDate();
     showTxDialog.value = false;
     await loadTransactions();
   } catch (error) {
@@ -198,6 +214,26 @@ async function confirmDelete(): Promise<void> {
   }
 }
 
+function openDeleteAccountConfirm(account: { id: string; name: string }): void {
+  deletingAccount.value = account;
+  showDeleteAccountConfirm.value = true;
+}
+
+async function confirmDeleteAccount(): Promise<void> {
+  if (!deletingAccount.value) return;
+  clearFlash();
+  try {
+    await pocketfundApi.deleteAccount(deletingAccount.value.id);
+    message.value = "帳戶已刪除";
+    showDeleteAccountConfirm.value = false;
+    deletingAccount.value = null;
+    await loadBaseData();
+  } catch (error) {
+    onError(error);
+    showDeleteAccountConfirm.value = false;
+  }
+}
+
 async function loadTransactions(): Promise<void> {
   if (!queryForm.fundId) return;
   clearFlash();
@@ -242,6 +278,7 @@ onMounted(async () => {
       </div>
       <div class="top-actions">
         <button type="button" class="btn-secondary" @click="$router.push({ name: 'charts' })">查看基金圖表</button>
+        <button type="button" class="btn-secondary" @click="showManual = true">使用手冊</button>
         <button type="button" class="btn-ghost" @click="logout">登出</button>
       </div>
     </header>
@@ -260,6 +297,7 @@ onMounted(async () => {
           <li v-for="account in accounts" :key="account.id" class="item-row">
             <span class="item-name">{{ account.name }}</span>
             <span class="item-badge">{{ account.type === 'salary' ? '薪轉戶' : '儲蓄戶' }}</span>
+            <button type="button" class="btn-icon-danger" title="刪除帳戶" @click="openDeleteAccountConfirm(account)">✕</button>
           </li>
         </ul>
         <p v-else class="empty-hint">尚無帳戶，請新增一個。</p>
@@ -427,6 +465,29 @@ onMounted(async () => {
       </div>
     </Teleport>
 
+    <!-- 使用手冊 -->
+    <UserManualModal v-model="showManual" />
+
+    <!-- Confirm: 刪除帳戶 -->
+    <Teleport to="body">
+      <div v-if="showDeleteAccountConfirm" class="dialog-backdrop" @click.self="showDeleteAccountConfirm = false">
+        <div class="dialog dialog-sm">
+          <div class="dialog-head">
+            <h3>確認刪除帳戶</h3>
+            <button type="button" class="btn-close" @click="showDeleteAccountConfirm = false">✕</button>
+          </div>
+          <p class="confirm-text">
+            確定要刪除帳戶 <strong>{{ deletingAccount?.name }}</strong> 嗎？<br />
+            <span class="confirm-desc">若該帳戶已有交易或排程紀錄，將無法刪除。</span>
+          </p>
+          <div class="dialog-footer">
+            <button type="button" class="btn-ghost" @click="showDeleteAccountConfirm = false">取消</button>
+            <button type="button" class="btn-danger" @click="confirmDeleteAccount">確認刪除</button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
     <!-- Dialog: 新增交易 -->
     <Teleport to="body">
       <div v-if="showTxDialog" class="dialog-backdrop" @click.self="showTxDialog = false">
@@ -436,6 +497,10 @@ onMounted(async () => {
             <button type="button" class="btn-close" @click="showTxDialog = false">✕</button>
           </div>
           <form @submit.prevent="submitTransaction">
+            <label class="field">
+              <span>交易日期</span>
+              <input v-model="txForm.occurredAt" type="date" required />
+            </label>
             <label class="field">
               <span>基金</span>
               <select v-model="txForm.fundId" required>
@@ -728,5 +793,22 @@ select {
 
 .btn-danger:hover {
   filter: brightness(0.9);
+}
+
+.btn-icon-danger {
+  background: transparent;
+  border-color: transparent;
+  color: var(--text-muted-color);
+  padding: 2px 6px;
+  font-size: 12px;
+  margin-left: auto;
+}
+
+.btn-icon-danger:hover {
+  background: color-mix(in srgb, #ef4444 12%, transparent);
+  color: #ef4444;
+  border-color: transparent;
+  box-shadow: none;
+  filter: none;
 }
 </style>

@@ -1,4 +1,5 @@
 :root {
+  color-scheme: light;
   font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", Arial, sans-serif;
   --bg-color: #f8fafc;
   --surface-color: #ffffff;
@@ -27,6 +28,7 @@
 }
 
 [data-theme="dark"] {
+  color-scheme: dark;
   --bg-color: #050505;
   --surface-color: #121212;
   --surface-muted-color: #1a1a1a;
