@@ -41,11 +41,11 @@ export const pocketfundApi = {
   createFund(name: string, cycleDay: number): Promise<Fund> {
     return api.post<Fund>("/funds", { name, cycleDay });
   },
-  createTopUp(fundId: string, accountId: string, amount: number, description?: string): Promise<unknown> {
-    return api.post(`/funds/${fundId}/top-ups`, { accountId, amount, description: description || undefined });
+  createTopUp(fundId: string, accountId: string, amount: number, description?: string, occurredAt?: string): Promise<unknown> {
+    return api.post(`/funds/${fundId}/top-ups`, { accountId, amount, description: description || undefined, occurredAt });
   },
-  createExpense(fundId: string, accountId: string, amount: number, description?: string): Promise<unknown> {
-    return api.post(`/funds/${fundId}/expenses`, { accountId, amount, description: description || undefined });
+  createExpense(fundId: string, accountId: string, amount: number, description?: string, occurredAt?: string): Promise<unknown> {
+    return api.post(`/funds/${fundId}/expenses`, { accountId, amount, description: description || undefined, occurredAt });
   },
   listFundTransactions(fundId: string, query: TransactionQuery): Promise<PagedTransactions> {
     return api.get<PagedTransactions>(`/funds/${fundId}/transactions${buildTransactionQuery(query)}`);

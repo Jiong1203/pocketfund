@@ -35,12 +35,19 @@ const fundForm = reactive({
   cycleDay: 1
 });
 
+function todayLocalDate(): string {
+  const now = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+}
+
 const txForm = reactive({
   fundId: "",
   accountId: "",
   actionType: "top-ups" as "top-ups" | "expenses",
   amount: 0,
-  description: ""
+  description: "",
+  occurredAt: todayLocalDate()
 });
 
 const editTxForm = reactive({
@@ -133,24 +140,28 @@ async function createFund(): Promise<void> {
 async function submitTransaction(): Promise<void> {
   clearFlash();
   try {
+    const occurredAt = txForm.occurredAt ? new Date(`${txForm.occurredAt}T00:00:00`).toISOString() : undefined;
     if (txForm.actionType === "top-ups") {
       await pocketfundApi.createTopUp(
         txForm.fundId,
         txForm.accountId,
         Number(txForm.amount),
-        txForm.description || undefined
+        txForm.description || undefined,
+        occurredAt
       );
     } else {
       await pocketfundApi.createExpense(
         txForm.fundId,
         txForm.accountId,
         Number(txForm.amount),
-        txForm.description || undefined
+        txForm.description || undefined,
+        occurredAt
       );
     }
     message.value = "交易新增成功";
     txForm.amount = 0;
     txForm.description = "";
+    txForm.occurredAt = todayLocalDate();
     showTxDialog.value = false;
     await loadTransactions();
   } catch (error) {
@@ -486,6 +497,10 @@ onMounted(async () => {
             <button type="button" class="btn-close" @click="showTxDialog = false">✕</button>
           </div>
           <form @submit.prevent="submitTransaction">
+            <label class="field">
+              <span>交易日期</span>
+              <input v-model="txForm.occurredAt" type="date" required />
+            </label>
             <label class="field">
               <span>基金</span>
               <select v-model="txForm.fundId" required>
