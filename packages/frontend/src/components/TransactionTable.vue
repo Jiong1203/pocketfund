@@ -18,7 +18,7 @@
           {{ Number(item.amount).toLocaleString("zh-TW", { maximumFractionDigits: 0 }) }}
         </td>
         <td class="col-desc">{{ item.description ?? "-" }}</td>
-        <td class="col-date">{{ new Date(item.occurred_at).toLocaleString("zh-TW") }}</td>
+        <td class="col-date">{{ new Date(item.occurred_at).toLocaleDateString("zh-TW") }}</td>
         <td class="col-actions">
           <button type="button" class="btn-icon btn-edit" title="編輯" @click="emit('edit', item)">✏️</button>
           <button type="button" class="btn-icon btn-delete" title="刪除" @click="emit('delete', item)">🗑️</button>
