@@ -1,5 +1,4 @@
-import { HttpStatus, Injectable } from "@nestjs/common";
-import { AppException } from "../../common/errors/app-exception";
+import { Injectable } from "@nestjs/common";
 import { AccountsRepository } from "../accounts/accounts.repository";
 import { CreateFundTransactionDto } from "../transactions/dto/create-fund-transaction.dto";
 import { ListTransactionsQueryDto } from "../transactions/dto/list-transactions-query.dto";
@@ -57,17 +56,6 @@ export class FundsService {
   public async expense(userId: string, fundId: string, dto: CreateFundTransactionDto) {
     await this.fundsRepository.ensureFundExists(userId, fundId);
     await this.accountsRepository.ensureOwned(userId, dto.accountId);
-    const currentBalance = await this.fundsRepository.getFundBalance(userId, fundId);
-
-    if (currentBalance - dto.amount < 0) {
-      throw new AppException(
-        {
-          code: "LEDGER_INSUFFICIENT_BALANCE",
-          message: "Insufficient fund balance."
-        },
-        HttpStatus.CONFLICT
-      );
-    }
 
     return this.transactionsService.createLedgerTransaction({
       userId,
