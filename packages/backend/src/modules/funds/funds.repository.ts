@@ -50,17 +50,22 @@ export class FundsRepository {
     return result.rows[0];
   }
 
-  public async list(userId: string): Promise<FundRow[]> {
-    const result = await this.db.query<FundRow>(
+  // Balance is computed from the ledger on every read (never persisted).
+  public async list(userId: string): Promise<Array<FundRow & { balance: number }>> {
+    const result = await this.db.query<FundRow & BalanceRow>(
       `
-      select ${FUND_COLUMNS}
-      from funds
-      where user_id = $1
-      order by created_at desc
+      select f.*,
+        coalesce(
+          (select sum(t.amount) from transactions t where t.user_id = f.user_id and t.fund_id = f.id),
+          0
+        )::numeric(14,2) as balance
+      from funds f
+      where f.user_id = $1
+      order by f.created_at desc
       `,
       [userId]
     );
-    return result.rows;
+    return result.rows.map((row) => ({ ...row, balance: Number(row.balance) }));
   }
 
   public async getById(userId: string, fundId: string): Promise<FundRow> {

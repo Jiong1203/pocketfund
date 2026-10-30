@@ -24,6 +24,7 @@ export interface Fund {
   id: string;
   name: string;
   cycle_day: number;
+  balance: number;
 }
 
 export interface TransactionRecord {

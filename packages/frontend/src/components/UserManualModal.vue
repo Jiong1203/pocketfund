@@ -51,8 +51,8 @@
               </thead>
               <tbody>
                 <tr><td>帳戶</td><td>新增與管理存放資金的帳戶（例如：薪轉戶、儲蓄戶）</td></tr>
-                <tr><td>基金</td><td>新增與管理資金用途分類（例如：旅遊基金、緊急備用金）</td></tr>
-                <tr><td>交易查詢</td><td>查詢、篩選、編輯、刪除交易紀錄</td></tr>
+                <tr><td>基金</td><td>新增資金用途分類（例如：旅遊基金、緊急備用金），並顯示每個基金的即時餘額與總餘額</td></tr>
+                <tr><td>交易紀錄</td><td>查看、篩選、編輯、刪除所選基金的交易紀錄</td></tr>
               </tbody>
             </table>
             <p>右上角按鈕：</p>
@@ -99,15 +99,16 @@
             <h3>6. 新增交易</h3>
             <p>記錄資金的儲值或支出。</p>
             <ol>
-              <li>點擊交易查詢卡片右上角 <strong>「＋ 新增交易」</strong>。</li>
-              <li>從下拉選單選擇 <strong>基金</strong> 與 <strong>帳戶</strong>。</li>
-              <li>選擇 <strong>交易類型</strong>：
+              <li>點擊交易紀錄卡片右上角 <strong>「＋ 新增交易」</strong>。</li>
+              <li>在最上方切換 <strong>交易類型</strong>（預設為支出）：
                 <ul>
                   <li><strong>儲值 (TOP_UP)</strong> — 將資金加入基金</li>
                   <li><strong>支出 (EXPENSE)</strong> — 從基金扣除資金</li>
                 </ul>
               </li>
               <li>輸入 <strong>金額</strong>（正整數）。</li>
+              <li>確認 <strong>基金</strong> 與 <strong>帳戶</strong>（基金預設為目前選取的基金）。</li>
+              <li>確認 <strong>交易日期</strong>（預設為今天）。</li>
               <li>輸入 <strong>備註</strong>（選填，例如：早餐、7-11）。</li>
               <li>點擊 <strong>「送出交易」</strong>。</li>
             </ol>
@@ -120,7 +121,7 @@
             <h4>編輯交易</h4>
             <ol>
               <li>在交易列表中，點擊該筆交易右側的 <strong>「編輯」</strong> 按鈕。</li>
-              <li>修改 <strong>交易類型、金額、說明</strong> 或 <strong>交易時間</strong>。</li>
+              <li>修改 <strong>交易日期、類型、金額</strong> 或 <strong>說明</strong>。</li>
               <li>點擊 <strong>「儲存變更」</strong>。</li>
             </ol>
             <h4>刪除交易</h4>
@@ -135,12 +136,11 @@
             <h3>8. 查詢交易紀錄</h3>
             <p>篩選並瀏覽指定基金的歷史交易。</p>
             <ol>
-              <li>從下拉選單選擇 <strong>基金</strong>。</li>
-              <li>選擇 <strong>交易類型篩選</strong>（選填）：全部 / TOP_UP / EXPENSE / TRANSFER。</li>
-              <li>設定 <strong>每頁筆數</strong>（預設 20，最多 100）。</li>
-              <li>點擊 <strong>「查詢」</strong>。</li>
+              <li>點擊基金卡片中的基金，或從篩選列的下拉選單選擇 <strong>基金</strong>。</li>
+              <li>選擇 <strong>類型</strong>（選填）：全部 / 儲值 / 支出 / 轉帳。</li>
+              <li>選擇 <strong>每頁筆數</strong>（10 / 20 / 50 筆）。</li>
             </ol>
-            <p>點擊 <strong>「下一頁」</strong> 或 <strong>「上一頁」</strong> 瀏覽更多紀錄。頁碼格式：<code>第 X 頁 / 共 Y 筆</code>。</p>
+            <p>變更篩選條件後列表會自動更新。紀錄超過一頁時，可點擊 <strong>「下一頁」</strong> 或 <strong>「上一頁」</strong> 瀏覽。</p>
           </section>
 
           <section id="charts">
@@ -176,7 +176,7 @@
             <h3>12. 常見問答</h3>
             <div class="faq-item">
               <p class="faq-q">Q: 基金餘額在哪裡查看？</p>
-              <p>A: 目前餘額由交易紀錄加總計算。可在交易查詢中查看所有 TOP_UP 與 EXPENSE，或前往圖表頁面觀察累積趨勢。</p>
+              <p>A: 儀表板的基金卡片會顯示每個基金的餘額與所有基金的總餘額，由交易紀錄即時加總計算。</p>
             </div>
             <div class="faq-item">
               <p class="faq-q">Q: 帳戶和基金有什麼差別？</p>

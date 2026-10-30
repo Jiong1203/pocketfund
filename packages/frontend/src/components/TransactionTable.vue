@@ -15,13 +15,13 @@
           <span class="type-badge" :class="`type-${item.type.toLowerCase()}`">{{ typeMap[item.type] || item.type }}</span>
         </td>
         <td class="col-amount" :class="{ negative: Number(item.amount) < 0 }">
-          {{ Number(item.amount).toLocaleString("zh-TW", { maximumFractionDigits: 0 }) }}
+          {{ formatMoney(Number(item.amount)) }}
         </td>
         <td class="col-desc">{{ item.description ?? "-" }}</td>
         <td class="col-date">{{ new Date(item.occurred_at).toLocaleDateString("zh-TW") }}</td>
         <td class="col-actions">
-          <button type="button" class="btn-icon btn-edit" title="編輯" @click="emit('edit', item)">✏️</button>
-          <button type="button" class="btn-icon btn-delete" title="刪除" @click="emit('delete', item)">🗑️</button>
+          <button type="button" class="btn-icon btn-edit" title="編輯" aria-label="編輯交易" @click="emit('edit', item)">✏️</button>
+          <button type="button" class="btn-icon btn-delete" title="刪除" aria-label="刪除交易" @click="emit('delete', item)">🗑️</button>
         </td>
       </tr>
       <tr v-if="rows.length === 0">
@@ -32,6 +32,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatMoney } from "../lib/format";
 import type { TransactionRecord } from "../types/api";
 
 const typeMap: Record<string, string> = {
