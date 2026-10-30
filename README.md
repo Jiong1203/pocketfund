@@ -73,6 +73,7 @@ After that, `npm run deploy` builds and deploys the SPA and API together.
   - `DELETE /funds/:id`
   - `POST /funds/:id/top-ups`
   - `POST /funds/:id/expenses`
+  - `POST /funds/:id/transfers` (body: `toFundId`, `accountId`, `amount`; stored as a pair of TRANSFER rows sharing `transfer_group_id`)
   - `GET /funds/:id/balance`
   - `GET /funds/:id/transactions?page=1&pageSize=20&type=TOP_UP&startAt=2026-01-01T00:00:00.000Z&endAt=2026-12-31T23:59:59.999Z`
   - `GET /funds/:id/monthly-flow?startAt=2026-01-01T00:00:00.000Z&endAt=2026-12-31T23:59:59.999Z`

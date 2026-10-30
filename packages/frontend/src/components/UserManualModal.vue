@@ -133,6 +133,7 @@
                 <ul>
                   <li><strong>儲值 (TOP_UP)</strong> — 將資金加入基金</li>
                   <li><strong>支出 (EXPENSE)</strong> — 從基金扣除資金</li>
+                  <li><strong>轉帳 (TRANSFER)</strong> — 把錢從一個基金挪到另一個基金（需選擇轉出與轉入基金）。錢仍放在同一個帳戶，不會計入儲值或支出；編輯或刪除時，兩個基金的紀錄會一起更新。</li>
                 </ul>
               </li>
               <li>輸入 <strong>金額</strong>（正整數）。</li>

@@ -14,7 +14,10 @@
         <td class="col-type">
           <span class="type-badge" :class="`type-${item.type.toLowerCase()}`">{{ TYPE_LABELS[item.type] ?? item.type }}</span>
         </td>
-        <td class="col-desc" :title="item.description ?? undefined">{{ item.description || "（無說明）" }}</td>
+        <td class="col-desc" :title="describe(item)">
+          <span v-if="item.type === 'TRANSFER'" class="transfer-dir">{{ transferLabel(item) }}</span>
+          {{ item.type === "TRANSFER" ? item.description ?? "" : item.description || "（無說明）" }}
+        </td>
         <td class="col-date">{{ formatDate(item.occurred_at) }}</td>
         <td class="col-amount money" :class="Number(item.amount) < 0 ? 'expense' : 'income'">
           {{ formatSignedMoney(Number(item.amount)) }}
@@ -46,10 +49,22 @@ const TYPE_LABELS: Record<string, string> = {
   TRANSFER: "轉帳"
 };
 
-defineProps<{
+const props = defineProps<{
   rows: TransactionRecord[];
   emptyText?: string;
+  fundNames?: Record<string, string>;
 }>();
+
+// TRANSFER rows show which fund the money went to / came from.
+function transferLabel(item: TransactionRecord): string {
+  const other = (item.counterpart_fund_id && props.fundNames?.[item.counterpart_fund_id]) || "其他基金";
+  return Number(item.amount) < 0 ? `轉出至 ${other}` : `轉入自 ${other}`;
+}
+
+function describe(item: TransactionRecord): string | undefined {
+  if (item.type !== "TRANSFER") return item.description ?? undefined;
+  return [transferLabel(item), item.description].filter(Boolean).join("・");
+}
 
 const emit = defineEmits<{
   edit: [row: TransactionRecord];
@@ -119,6 +134,12 @@ tbody tr:not(.empty-row):hover {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.transfer-dir {
+  color: var(--text-color);
+  font-weight: 600;
+  margin-right: 4px;
 }
 
 .col-date {

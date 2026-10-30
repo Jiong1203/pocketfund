@@ -90,6 +90,7 @@
 
         <TransactionTable
           :rows="transactions?.items ?? []"
+          :fund-names="fundNames"
           :empty-text="queryForm.type ? '這個條件下沒有交易紀錄' : '這個基金還沒有交易，按「新增交易」記第一筆吧'"
           @edit="openEditDialog"
           @delete="openDeleteConfirm"
@@ -179,11 +180,14 @@
             </label>
             <label class="field">
               <span>交易類型</span>
-              <select v-model="editTxForm.type" required>
-                <option value="TOP_UP">儲值</option>
-                <option value="EXPENSE">支出</option>
-                <option value="TRANSFER">轉帳</option>
+              <select v-model="editTxForm.type" :disabled="editTxForm.type === 'TRANSFER'" required>
+                <option v-if="editTxForm.type === 'TRANSFER'" value="TRANSFER">轉帳</option>
+                <template v-else>
+                  <option value="TOP_UP">儲值</option>
+                  <option value="EXPENSE">支出</option>
+                </template>
               </select>
+              <small v-if="editTxForm.type === 'TRANSFER'" class="field-hint">轉帳的金額、日期和說明會同步更新到轉出和轉入兩個基金。</small>
             </label>
             <label class="field">
               <span>金額</span>
@@ -211,8 +215,9 @@
             <button type="button" class="btn btn-icon" aria-label="關閉" @click="showDeleteConfirm = false"><AppIcon name="close" /></button>
           </div>
           <p class="confirm-text">
-            確定要刪除這筆交易嗎？<br />
+            確定要刪除這筆{{ deletingTx?.isTransfer ? "轉帳" : "交易" }}嗎？<br />
             <span class="confirm-desc">{{ deletingTx?.description }}</span>
+            <span v-if="deletingTx?.isTransfer" class="confirm-desc"><br />轉出和轉入兩個基金的紀錄會一起刪除。</span>
           </p>
           <div class="dialog-footer">
             <button type="button" class="btn btn-ghost" @click="showDeleteConfirm = false">取消</button>
@@ -286,20 +291,36 @@
                 :class="{ active: txForm.actionType === 'top-ups' }"
                 @click="txForm.actionType = 'top-ups'"
               >儲值</button>
+              <button
+                type="button"
+                role="radio"
+                :aria-checked="txForm.actionType === 'transfers'"
+                :class="{ active: txForm.actionType === 'transfers' }"
+                :disabled="funds.length < 2"
+                :title="funds.length < 2 ? '至少需要兩個基金才能轉帳' : undefined"
+                @click="selectTransfer"
+              >轉帳</button>
             </div>
             <label class="field">
               <span>金額</span>
               <input v-model.number="txForm.amount" type="number" min="1" step="1" inputmode="numeric" placeholder="0" required />
             </label>
             <label class="field">
-              <span>基金</span>
+              <span>{{ isTransfer ? "從哪個基金轉出" : "基金" }}</span>
               <select v-model="txForm.fundId" required>
                 <option disabled value="">請選擇基金</option>
                 <option v-for="fund in funds" :key="fund.id" :value="fund.id">{{ fund.name }}（餘額 {{ formatMoney(fund.balance) }}）</option>
               </select>
             </label>
+            <label v-if="isTransfer" class="field">
+              <span>轉入哪個基金</span>
+              <select v-model="txForm.toFundId" required>
+                <option disabled value="">請選擇基金</option>
+                <option v-for="fund in transferTargets" :key="fund.id" :value="fund.id">{{ fund.name }}（餘額 {{ formatMoney(fund.balance) }}）</option>
+              </select>
+            </label>
             <label class="field">
-              <span>帳戶</span>
+              <span>{{ isTransfer ? "錢存放在哪個帳戶" : "帳戶" }}</span>
               <select v-model="txForm.accountId" required>
                 <option disabled value="">請選擇帳戶</option>
                 <option v-for="account in accounts" :key="account.id" :value="account.id">{{ account.name }}</option>
@@ -311,8 +332,9 @@
             </label>
             <label class="field">
               <span>說明（可選）</span>
-              <input v-model.trim="txForm.description" :placeholder="txForm.actionType === 'expenses' ? '例：午餐' : '例：三月份薪水'" />
+              <input v-model.trim="txForm.description" :placeholder="DESCRIPTION_PLACEHOLDERS[txForm.actionType]" />
             </label>
+            <p v-if="isTransfer" class="dialog-note">轉帳只是在基金之間重新分配，錢仍放在同一個帳戶，不會計入儲值或支出。</p>
             <div class="dialog-footer">
               <button type="button" class="btn btn-ghost" @click="showTxDialog = false">取消</button>
               <button type="submit" class="btn" :disabled="submitting">{{ submitting ? "處理中..." : "送出交易" }}</button>
@@ -336,6 +358,11 @@ import { pocketfundApi } from "../services/pocketfund";
 import type { Account, Fund, PagedTransactions, ScheduledTopUp, TransactionRecord } from "../types/api";
 
 const PAGE_SIZES = [10, 20, 50];
+const DESCRIPTION_PLACEHOLDERS = {
+  expenses: "例：午餐",
+  "top-ups": "例：三月份薪水",
+  transfers: "例：旅遊預算挪去生活費"
+} as const;
 const FLASH_DURATION_MS = 3000;
 
 const loading = ref(false);
@@ -371,7 +398,8 @@ const deletingFund = ref<{ id: string; name: string } | null>(null);
 const txForm = reactive({
   fundId: "",
   accountId: "",
-  actionType: "expenses" as "top-ups" | "expenses",
+  actionType: "expenses" as "top-ups" | "expenses" | "transfers",
+  toFundId: "",
   amount: null as number | null,
   description: "",
   occurredAt: todayLocalDate()
@@ -387,7 +415,7 @@ const editTxForm = reactive({
   original: null as TransactionRecord | null
 });
 
-const deletingTx = ref<{ id: string; description: string } | null>(null);
+const deletingTx = ref<{ id: string; description: string; isTransfer: boolean } | null>(null);
 
 const showDeleteAccountConfirm = ref(false);
 const deletingAccount = ref<{ id: string; name: string } | null>(null);
@@ -401,6 +429,9 @@ const queryForm = reactive({
 
 const totalBalance = computed(() => funds.value.reduce((sum, fund) => sum + fund.balance, 0));
 const selectedFund = computed(() => funds.value.find((fund) => fund.id === queryForm.fundId));
+const fundNames = computed<Record<string, string>>(() => Object.fromEntries(funds.value.map((fund) => [fund.id, fund.name])));
+const isTransfer = computed(() => txForm.actionType === "transfers");
+const transferTargets = computed(() => funds.value.filter((fund) => fund.id !== txForm.fundId));
 
 const totalPages = computed(() => {
   if (!transactions.value) return 1;
@@ -566,12 +597,35 @@ function openTxDialog(): void {
   showTxDialog.value = true;
 }
 
+function selectTransfer(): void {
+  txForm.actionType = "transfers";
+  if (!txForm.toFundId || txForm.toFundId === txForm.fundId) {
+    txForm.toFundId = transferTargets.value[0]?.id ?? "";
+  }
+}
+
+// Keep the destination valid when the source fund changes to the same fund.
+watch(
+  () => txForm.fundId,
+  (fundId) => {
+    if (txForm.toFundId === fundId) txForm.toFundId = transferTargets.value[0]?.id ?? "";
+  }
+);
+
 function submitTransaction(): Promise<void> {
   return runSubmit(async () => {
     const amount = Number(txForm.amount);
     const occurredAt = new Date(`${txForm.occurredAt}T00:00:00`).toISOString();
     const description = txForm.description || undefined;
-    if (txForm.actionType === "top-ups") {
+    if (txForm.actionType === "transfers") {
+      await pocketfundApi.createTransfer(txForm.fundId, {
+        toFundId: txForm.toFundId,
+        accountId: txForm.accountId,
+        amount,
+        description,
+        occurredAt
+      });
+    } else if (txForm.actionType === "top-ups") {
       await pocketfundApi.createTopUp(txForm.fundId, txForm.accountId, amount, description, occurredAt);
     } else {
       await pocketfundApi.createExpense(txForm.fundId, txForm.accountId, amount, description, occurredAt);
@@ -581,7 +635,7 @@ function submitTransaction(): Promise<void> {
     txForm.occurredAt = todayLocalDate();
     showTxDialog.value = false;
     await refreshAfterLedgerWrite();
-    showSuccess("交易新增成功");
+    showSuccess(isTransfer.value ? "轉帳完成" : "交易新增成功");
   });
 }
 
@@ -622,7 +676,11 @@ function saveEdit(): Promise<void> {
 }
 
 function openDeleteConfirm(row: TransactionRecord): void {
-  deletingTx.value = { id: row.id, description: row.description ?? "（無說明）" };
+  deletingTx.value = {
+    id: row.id,
+    description: row.description ?? "（無說明）",
+    isTransfer: row.type === "TRANSFER"
+  };
   showDeleteConfirm.value = true;
 }
 
@@ -882,7 +940,7 @@ onMounted(async () => {
 /* ── Dialog extras ── */
 .segmented {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: 4px;
   padding: 4px;
   background: var(--surface-muted-color);
@@ -898,6 +956,11 @@ onMounted(async () => {
   font: inherit;
   font-weight: 600;
   cursor: pointer;
+}
+
+.segmented button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .segmented button.active {
@@ -917,6 +980,16 @@ onMounted(async () => {
 
 .footer-start {
   margin-right: auto;
+}
+
+.dialog-note {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: var(--surface-muted-color);
+  color: var(--text-muted-color);
+  font-size: 13px;
+  line-height: 1.6;
 }
 
 .confirm-text {

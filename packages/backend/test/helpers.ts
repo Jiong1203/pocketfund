@@ -7,6 +7,7 @@ export const USER = { id: "user-1", email: "test@example.com" };
 export const VALID_TOKEN = "valid-token";
 export const FUND_ID = "550e8400-e29b-41d4-a716-446655440000";
 export const ACCOUNT_ID = "550e8400-e29b-41d4-a716-446655440001";
+export const OTHER_FUND_ID = "550e8400-e29b-41d4-a716-446655440002";
 
 type DeepMock<T> = { [K in keyof T]: { [M in keyof T[K]]: ReturnType<typeof vi.fn> } };
 
@@ -30,11 +31,17 @@ export function createTestApp() {
       delete: vi.fn(),
       topUp: vi.fn(),
       expense: vi.fn(),
+      transfer: vi.fn(),
       getBalance: vi.fn(),
       getTransactions: vi.fn(),
       getMonthlyFlow: vi.fn()
     },
-    transactions: { createLedgerTransaction: vi.fn(), updateTransaction: vi.fn(), deleteTransaction: vi.fn() },
+    transactions: {
+      createLedgerTransaction: vi.fn(),
+      createFundTransfer: vi.fn(),
+      updateTransaction: vi.fn(),
+      deleteTransaction: vi.fn()
+    },
     schedules: { create: vi.fn(), list: vi.fn(), update: vi.fn(), delete: vi.fn(), executeScheduledTopUps: vi.fn() }
   } satisfies Partial<DeepMock<Services>>;
 

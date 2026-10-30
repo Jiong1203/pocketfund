@@ -11,6 +11,16 @@ export const createFundTransactionSchema = z.strictObject({
 });
 export type CreateFundTransactionDto = z.infer<typeof createFundTransactionSchema>;
 
+export const createFundTransferSchema = z.strictObject({
+  toFundId: z.uuid(),
+  accountId: z.uuid(),
+  amount: money.refine((value) => value >= 0.01, { message: "Must be at least 0.01." }),
+  description: z.string().optional(),
+  occurredAt: isoDateString.optional(),
+  idempotencyKey: z.string().optional()
+});
+export type CreateFundTransferDto = z.infer<typeof createFundTransferSchema>;
+
 export const updateTransactionSchema = z.strictObject({
   type: z.enum(TransactionType).optional(),
   amount: money.refine((value) => value >= 0.01, { message: "Must be at least 0.01." }).optional(),

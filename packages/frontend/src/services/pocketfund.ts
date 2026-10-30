@@ -72,6 +72,12 @@ export const pocketfundApi = {
   createFund(name: string, cycleDay: number): Promise<Fund> {
     return api.post<Fund>("/funds", { name, cycleDay });
   },
+  createTransfer(
+    fromFundId: string,
+    data: { toFundId: string; accountId: string; amount: number; description?: string; occurredAt?: string }
+  ): Promise<unknown> {
+    return api.post(`/funds/${fromFundId}/transfers`, data);
+  },
   createTopUp(fundId: string, accountId: string, amount: number, description?: string, occurredAt?: string): Promise<unknown> {
     return api.post(`/funds/${fundId}/top-ups`, { accountId, amount, description: description || undefined, occurredAt });
   },

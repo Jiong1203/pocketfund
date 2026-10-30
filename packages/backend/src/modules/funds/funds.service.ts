@@ -1,6 +1,10 @@
 import type { AccountsRepository } from "../accounts/accounts.repository";
 import type { TransactionsRepository } from "../transactions/transactions.repository";
-import type { CreateFundTransactionDto, ListTransactionsQueryDto } from "../transactions/transactions.schemas";
+import type {
+  CreateFundTransactionDto,
+  CreateFundTransferDto,
+  ListTransactionsQueryDto
+} from "../transactions/transactions.schemas";
 import type { TransactionsService } from "../transactions/transactions.service";
 import { TransactionType } from "../transactions/transactions.types";
 import type { FundsRepository } from "./funds.repository";
@@ -41,6 +45,22 @@ export class FundsService {
 
   public async expense(userId: string, fundId: string, dto: CreateFundTransactionDto) {
     return this.postToFund(userId, fundId, TransactionType.EXPENSE, dto);
+  }
+
+  public async transfer(userId: string, fromFundId: string, dto: CreateFundTransferDto) {
+    await this.fundsRepository.ensureFundExists(userId, fromFundId);
+    await this.fundsRepository.ensureFundExists(userId, dto.toFundId);
+    await this.accountsRepository.ensureOwned(userId, dto.accountId);
+    return this.transactionsService.createFundTransfer({
+      userId,
+      fromFundId,
+      toFundId: dto.toFundId,
+      accountId: dto.accountId,
+      amountAbs: dto.amount,
+      description: dto.description,
+      occurredAt: dto.occurredAt,
+      idempotencyKey: dto.idempotencyKey
+    });
   }
 
   public async getBalance(userId: string, fundId: string): Promise<{ fundId: string; balance: number }> {

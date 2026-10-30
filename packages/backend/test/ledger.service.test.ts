@@ -6,7 +6,7 @@ import { FundsService } from "../src/modules/funds/funds.service";
 import type { TransactionsRepository } from "../src/modules/transactions/transactions.repository";
 import { TransactionsService } from "../src/modules/transactions/transactions.service";
 import { TransactionType } from "../src/modules/transactions/transactions.types";
-import { ACCOUNT_ID, FUND_ID } from "./helpers";
+import { ACCOUNT_ID, FUND_ID, OTHER_FUND_ID } from "./helpers";
 
 function setup() {
   const transactionsRepository = {
@@ -122,6 +122,73 @@ describe("Editing transactions", () => {
     await service.updateTransaction("user-1", "tx", { description: "lunch" });
 
     expect(repo.updateTransaction).toHaveBeenCalledWith("tx", "user-1", { description: "lunch" });
+  });
+});
+
+describe("Fund transfers", () => {
+  function setupTransfer() {
+    const repo = {
+      insertTransferPair: vi.fn(async (input) => ({
+        from: { id: "out", fund_id: input.fromFundId },
+        to: { id: "in", fund_id: input.toFundId }
+      })),
+      findByIdAndUserId: vi.fn(),
+      updateTransferGroup: vi.fn(async () => [
+        { id: "out", amount: "-500.00" },
+        { id: "in", amount: "500.00" }
+      ]),
+      updateTransaction: vi.fn()
+    };
+    return { repo, service: new TransactionsService(repo as unknown as TransactionsRepository) };
+  }
+
+  it("writes the transfer as one pair with a positive amount and a generated idempotency key", async () => {
+    const { repo, service } = setupTransfer();
+
+    await service.createFundTransfer({
+      userId: "user-1",
+      fromFundId: FUND_ID,
+      toFundId: OTHER_FUND_ID,
+      accountId: ACCOUNT_ID,
+      amountAbs: 500
+    });
+
+    const input = repo.insertTransferPair.mock.calls[0]![0];
+    expect(input).toMatchObject({ fromFundId: FUND_ID, toFundId: OTHER_FUND_ID, amountAbs: 500 });
+    expect(input.idempotencyKey).toMatch(/^[0-9a-f-]{36}$/);
+  });
+
+  it("rejects a transfer into the same fund", async () => {
+    const { repo, service } = setupTransfer();
+
+    await expect(
+      service.createFundTransfer({ userId: "user-1", fromFundId: FUND_ID, toFundId: FUND_ID, accountId: ACCOUNT_ID, amountAbs: 1 })
+    ).rejects.toMatchObject({ code: "LEDGER_TRANSFER_SAME_FUND", status: 400 });
+    expect(repo.insertTransferPair).not.toHaveBeenCalled();
+  });
+
+  it("edits both legs of a transfer together", async () => {
+    const { repo, service } = setupTransfer();
+    repo.findByIdAndUserId.mockResolvedValue({ id: "out", type: TransactionType.TRANSFER, amount: "-800.00", transfer_group_id: "g1" });
+
+    const updated = await service.updateTransaction("user-1", "out", { amount: 500, description: "調整" });
+
+    expect(repo.updateTransferGroup).toHaveBeenCalledWith("g1", "user-1", { amountAbs: 500, description: "調整", occurredAt: undefined });
+    expect(repo.updateTransaction).not.toHaveBeenCalled();
+    expect(updated.id).toBe("out");
+  });
+
+  it("does not let a transfer change type, or another transaction become a transfer", async () => {
+    const { repo, service } = setupTransfer();
+    repo.findByIdAndUserId.mockResolvedValueOnce({ id: "out", type: TransactionType.TRANSFER, amount: "-800.00", transfer_group_id: "g1" });
+    await expect(service.updateTransaction("user-1", "out", { type: TransactionType.EXPENSE })).rejects.toMatchObject({
+      code: "LEDGER_TRANSFER_TYPE_LOCKED"
+    });
+
+    repo.findByIdAndUserId.mockResolvedValueOnce({ id: "tx", type: TransactionType.EXPENSE, amount: "-80.00", transfer_group_id: null });
+    await expect(service.updateTransaction("user-1", "tx", { type: TransactionType.TRANSFER })).rejects.toMatchObject({
+      code: "LEDGER_TRANSFER_TYPE_LOCKED"
+    });
   });
 });
 

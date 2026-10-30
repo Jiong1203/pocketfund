@@ -43,6 +43,9 @@ export interface TransactionRecord {
   amount: string;
   description: string | null;
   occurred_at: string;
+  transfer_group_id?: string | null;
+  // The other fund of a TRANSFER pair (only in listings).
+  counterpart_fund_id?: string | null;
 }
 
 export interface PagedTransactions {

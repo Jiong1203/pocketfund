@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { ACCOUNT_ID, FUND_ID, USER, createTestApp } from "./helpers";
+import { ACCOUNT_ID, FUND_ID, OTHER_FUND_ID, USER, createTestApp } from "./helpers";
 
 describe("Ledger routes", () => {
   let harness: ReturnType<typeof createTestApp>;
@@ -26,6 +26,25 @@ describe("Ledger routes", () => {
     expect(res.status).toBe(201);
     expect(res.body.data.id).toBe("tx2");
     expect(harness.services.funds.expense).toHaveBeenCalledWith(USER.id, FUND_ID, { accountId: ACCOUNT_ID, amount: 500 });
+  });
+
+  it("POST /funds/:id/transfers calls transfer with the source fund from the path", async () => {
+    harness.services.funds.transfer.mockResolvedValue({ from: { id: "out" }, to: { id: "in" } });
+    const body = { toFundId: OTHER_FUND_ID, accountId: ACCOUNT_ID, amount: 800 };
+
+    const res = await harness.call("POST", `/funds/${FUND_ID}/transfers`, { body });
+
+    expect(res.status).toBe(201);
+    expect(res.body.data.to.id).toBe("in");
+    expect(harness.services.funds.transfer).toHaveBeenCalledWith(USER.id, FUND_ID, body);
+  });
+
+  it("POST /funds/:id/transfers rejects a missing destination fund", async () => {
+    const res = await harness.call("POST", `/funds/${FUND_ID}/transfers`, { body: { accountId: ACCOUNT_ID, amount: 800 } });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe("VALIDATION_ERROR");
+    expect(harness.services.funds.transfer).not.toHaveBeenCalled();
   });
 
   it("GET /funds/:id/balance returns the computed balance", async () => {
