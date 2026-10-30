@@ -2,8 +2,8 @@ node_modules/
 dist/
 .env
 
-# Fly.io
-.fly/
+# Cloudflare
+.wrangler/
 
 # Editor
 .vscode/

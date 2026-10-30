@@ -1,8 +1,7 @@
 {
   "extends": "../tsconfig.json",
   "compilerOptions": {
-    "types": ["node", "jest"],
-    "esModuleInterop": true
+    "types": ["node"]
   },
-  "include": ["./**/*.ts", "../src/**/*.ts"]
+  "include": ["../src/**/*.ts", "./**/*.ts", "../../frontend/.cloudflare/types/index.d.ts"]
 }

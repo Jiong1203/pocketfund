@@ -1,17 +1,12 @@
-import { HttpStatus, Injectable, NotFoundException } from "@nestjs/common";
-import { AppException } from "../../common/errors/app-exception";
-import { DatabaseService } from "../../common/database/database.service";
-import { ListTransactionsQueryDto } from "../transactions/dto/list-transactions-query.dto";
-import { TransactionRecord } from "../transactions/transactions.types";
-import { MonthlyFlowQueryDto } from "./dto/monthly-flow-query.dto";
-import { CreateFundDto } from "./dto/create-fund.dto";
-import { UpdateFundDto } from "./dto/update-fund.dto";
+import type { DatabaseService } from "../../common/database";
+import { AppError, notFound } from "../../common/errors";
+import type { CreateFundDto, MonthlyFlowQueryDto, UpdateFundDto } from "./funds.schemas";
 
 interface BalanceRow {
   balance: string;
 }
 
-interface FundRow {
+export interface FundRow {
   id: string;
   user_id: string;
   name: string;
@@ -24,17 +19,15 @@ interface FundRow {
   updated_at: string;
 }
 
-interface CountRow {
-  total: string;
-}
-
 interface MonthlyFlowRow {
   month: string;
   top_up: string;
   expense: string;
 }
 
-@Injectable()
+const FUND_COLUMNS =
+  "id, user_id, name, description, monthly_amount, cycle_type, cycle_day, is_active, created_at, updated_at";
+
 export class FundsRepository {
   public constructor(private readonly db: DatabaseService) {}
 
@@ -43,7 +36,7 @@ export class FundsRepository {
       `
       insert into funds (user_id, name, description, monthly_amount, cycle_day, is_active)
       values ($1, $2, $3, $4, $5, $6)
-      returning id, user_id, name, description, monthly_amount, cycle_type, cycle_day, is_active, created_at, updated_at
+      returning ${FUND_COLUMNS}
       `,
       [
         userId,
@@ -60,7 +53,7 @@ export class FundsRepository {
   public async list(userId: string): Promise<FundRow[]> {
     const result = await this.db.query<FundRow>(
       `
-      select id, user_id, name, description, monthly_amount, cycle_type, cycle_day, is_active, created_at, updated_at
+      select ${FUND_COLUMNS}
       from funds
       where user_id = $1
       order by created_at desc
@@ -73,7 +66,7 @@ export class FundsRepository {
   public async getById(userId: string, fundId: string): Promise<FundRow> {
     const result = await this.db.query<FundRow>(
       `
-      select id, user_id, name, description, monthly_amount, cycle_type, cycle_day, is_active, created_at, updated_at
+      select ${FUND_COLUMNS}
       from funds
       where id = $1 and user_id = $2
       limit 1
@@ -82,7 +75,7 @@ export class FundsRepository {
     );
     const fund = result.rows[0];
     if (!fund) {
-      throw new NotFoundException("Fund not found.");
+      throw notFound("Fund not found.");
     }
     return fund;
   }
@@ -99,7 +92,7 @@ export class FundsRepository {
           is_active = $7,
           updated_at = now()
       where id = $1 and user_id = $2
-      returning id, user_id, name, description, monthly_amount, cycle_type, cycle_day, is_active, created_at, updated_at
+      returning ${FUND_COLUMNS}
       `,
       [
         fundId,
@@ -127,12 +120,12 @@ export class FundsRepository {
     );
 
     if (Number(transactionUsage.rows[0]?.count ?? 0) > 0 || Number(scheduleUsage.rows[0]?.count ?? 0) > 0) {
-      throw new AppException(
+      throw new AppError(
         {
           code: "LEDGER_FUND_IN_USE",
           message: "Fund cannot be deleted because it is referenced by ledger data."
         },
-        HttpStatus.CONFLICT
+        409
       );
     }
 
@@ -140,12 +133,12 @@ export class FundsRepository {
   }
 
   public async ensureFundExists(userId: string, fundId: string): Promise<void> {
-    const result = await this.db.query<{ id: string }>(
-      "select id from funds where id = $1 and user_id = $2",
-      [fundId, userId]
-    );
+    const result = await this.db.query<{ id: string }>("select id from funds where id = $1 and user_id = $2", [
+      fundId,
+      userId
+    ]);
     if (result.rowCount === 0) {
-      throw new NotFoundException("Fund not found.");
+      throw notFound("Fund not found.");
     }
   }
 
@@ -155,59 +148,6 @@ export class FundsRepository {
       [userId, fundId]
     );
     return Number(result.rows[0].balance);
-  }
-
-  public async getFundTransactions(
-    userId: string,
-    fundId: string,
-    query: ListTransactionsQueryDto
-  ): Promise<{ items: TransactionRecord[]; meta: { page: number; pageSize: number; total: number } }> {
-    const page = query.page ?? 1;
-    const pageSize = query.pageSize ?? 50;
-    const offset = (page - 1) * pageSize;
-
-    const filters: string[] = ["user_id = $1", "fund_id = $2"];
-    const values: unknown[] = [userId, fundId];
-
-    if (query.type) {
-      values.push(query.type);
-      filters.push(`type = $${values.length}`);
-    }
-    if (query.startAt) {
-      values.push(query.startAt);
-      filters.push(`occurred_at >= $${values.length}::timestamptz`);
-    }
-    if (query.endAt) {
-      values.push(query.endAt);
-      filters.push(`occurred_at <= $${values.length}::timestamptz`);
-    }
-
-    const whereClause = filters.join(" and ");
-    const countSql = `select count(*)::text as total from transactions where ${whereClause}`;
-    const countResult = await this.db.query<CountRow>(countSql, values);
-    const total = Number(countResult.rows[0]?.total ?? 0);
-
-    const pagedValues = [...values, pageSize, offset];
-    const result = await this.db.query<TransactionRecord>(
-      `
-      select id, user_id, fund_id, account_id, type, amount, description, occurred_at, idempotency_key, created_at
-      from transactions
-      where ${whereClause}
-      order by occurred_at desc, created_at desc
-      limit $${pagedValues.length - 1}
-      offset $${pagedValues.length}
-      `,
-      pagedValues
-    );
-
-    return {
-      items: result.rows,
-      meta: {
-        page,
-        pageSize,
-        total
-      }
-    };
   }
 
   public async getFundMonthlyFlow(

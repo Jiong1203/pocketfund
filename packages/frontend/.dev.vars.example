@@ -1,0 +1,2 @@
+# Local dev secrets for the Worker (copy to .dev.vars). Production: set with `npx wrangler secret put JWT_SECRET --name pocketfund`.
+JWT_SECRET=replace_with_a_strong_secret_at_least_32_chars

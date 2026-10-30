@@ -1,17 +1,13 @@
 import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
+import { cloudflare } from "@cloudflare/vite-plugin";
 
 // https://vite.dev/config/
+// The Cloudflare plugin runs the API Worker (packages/backend) inside workerd during dev,
+// so no proxy to a separate backend server is needed.
 export default defineConfig({
-  plugins: [vue()],
+  plugins: [vue(), cloudflare()],
   server: {
-    port: 5173,
-    proxy: {
-      "/auth": "http://localhost:3000",
-      "/accounts": "http://localhost:3000",
-      "/funds": "http://localhost:3000",
-      "/transactions": "http://localhost:3000",
-      "/schedules": "http://localhost:3000"
-    }
+    port: 5173
   }
 });

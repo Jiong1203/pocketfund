@@ -1,5 +1,4 @@
-import { Injectable } from "@nestjs/common";
-import { DatabaseService } from "../../common/database/database.service";
+import type { DatabaseService } from "../../common/database";
 
 interface UserRow {
   id: string;
@@ -8,7 +7,6 @@ interface UserRow {
   created_at: string;
 }
 
-@Injectable()
 export class AuthRepository {
   public constructor(private readonly db: DatabaseService) {}
 
@@ -35,5 +33,12 @@ export class AuthRepository {
       [email.toLowerCase()]
     );
     return result.rows[0] ?? null;
+  }
+
+  public async updatePasswordHash(userId: string, passwordHash: string): Promise<void> {
+    await this.db.query("update users set password_hash = $2 where id = $1", [
+      userId,
+      passwordHash
+    ]);
   }
 }

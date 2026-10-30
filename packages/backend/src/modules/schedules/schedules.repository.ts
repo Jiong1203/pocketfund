@@ -1,5 +1,4 @@
-import { Injectable } from "@nestjs/common";
-import { DatabaseService } from "../../common/database/database.service";
+import type { DatabaseService } from "../../common/database";
 
 export interface ScheduledTopUpRow {
   id: string;
@@ -12,20 +11,20 @@ export interface ScheduledTopUpRow {
   is_active: boolean;
 }
 
-@Injectable()
+const SCHEDULE_COLUMNS = "id, user_id, fund_id, account_id, amount, cycle_day, description, is_active";
+
 export class SchedulesRepository {
   public constructor(private readonly db: DatabaseService) {}
 
   public async getActiveSchedulesByDay(cycleDay: number): Promise<ScheduledTopUpRow[]> {
     const result = await this.db.query<ScheduledTopUpRow>(
       `
-      select id, user_id, fund_id, account_id, amount, cycle_day, description, is_active
+      select ${SCHEDULE_COLUMNS}
       from scheduled_topups
       where is_active = true and cycle_day = $1
       `,
       [cycleDay]
     );
-
     return result.rows;
   }
 
@@ -41,7 +40,7 @@ export class SchedulesRepository {
       `
       insert into scheduled_topups (user_id, fund_id, account_id, amount, cycle_day, description, is_active)
       values ($1, $2, $3, $4, $5, $6, true)
-      returning id, user_id, fund_id, account_id, amount, cycle_day, description, is_active
+      returning ${SCHEDULE_COLUMNS}
       `,
       [userId, fundId, accountId, amount, cycleDay, description ?? null]
     );
@@ -51,7 +50,7 @@ export class SchedulesRepository {
   public async listSchedules(userId: string): Promise<ScheduledTopUpRow[]> {
     const result = await this.db.query<ScheduledTopUpRow>(
       `
-      select id, user_id, fund_id, account_id, amount, cycle_day, description, is_active
+      select ${SCHEDULE_COLUMNS}
       from scheduled_topups
       where user_id = $1
       order by created_at desc
@@ -64,7 +63,7 @@ export class SchedulesRepository {
   public async getScheduleById(userId: string, scheduleId: string): Promise<ScheduledTopUpRow | null> {
     const result = await this.db.query<ScheduledTopUpRow>(
       `
-      select id, user_id, fund_id, account_id, amount, cycle_day, description, is_active
+      select ${SCHEDULE_COLUMNS}
       from scheduled_topups
       where user_id = $1 and id = $2
       limit 1
@@ -100,7 +99,7 @@ export class SchedulesRepository {
           is_active = $7,
           updated_at = now()
       where user_id = $1 and id = $2
-      returning id, user_id, fund_id, account_id, amount, cycle_day, description, is_active
+      returning ${SCHEDULE_COLUMNS}
       `,
       [
         userId,
@@ -116,13 +115,10 @@ export class SchedulesRepository {
   }
 
   public async deleteSchedule(userId: string, scheduleId: string): Promise<boolean> {
-    const result = await this.db.query(
-      `
-      delete from scheduled_topups
-      where user_id = $1 and id = $2
-      `,
-      [userId, scheduleId]
-    );
+    const result = await this.db.query("delete from scheduled_topups where user_id = $1 and id = $2", [
+      userId,
+      scheduleId
+    ]);
     return (result.rowCount ?? 0) > 0;
   }
 
@@ -138,7 +134,7 @@ export class SchedulesRepository {
   }
 
   public async hasRunOnDate(scheduleId: string, runDate: string): Promise<boolean> {
-    const result = await this.db.query<{ found: number }>(
+    const result = await this.db.query(
       `
       select 1 as found
       from scheduled_topup_runs

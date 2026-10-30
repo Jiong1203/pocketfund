@@ -1,12 +1,13 @@
-import { Injectable } from "@nestjs/common";
-import { AccountsRepository } from "./accounts.repository";
-import { CreateAccountDto } from "./dto/create-account.dto";
-import { UpdateAccountDto } from "./dto/update-account.dto";
-import { ListTransactionsQueryDto } from "../transactions/dto/list-transactions-query.dto";
+import type { ListTransactionsQueryDto } from "../transactions/transactions.schemas";
+import type { TransactionsRepository } from "../transactions/transactions.repository";
+import type { AccountsRepository } from "./accounts.repository";
+import type { CreateAccountDto, UpdateAccountDto } from "./accounts.schemas";
 
-@Injectable()
 export class AccountsService {
-  public constructor(private readonly accountsRepository: AccountsRepository) {}
+  public constructor(
+    private readonly accountsRepository: AccountsRepository,
+    private readonly transactionsRepository: TransactionsRepository
+  ) {}
 
   public async create(userId: string, dto: CreateAccountDto) {
     return this.accountsRepository.create(userId, dto);
@@ -30,6 +31,7 @@ export class AccountsService {
   }
 
   public async getTransactions(userId: string, accountId: string, query: ListTransactionsQueryDto) {
-    return this.accountsRepository.getAccountTransactions(userId, accountId, query);
+    await this.accountsRepository.ensureOwned(userId, accountId);
+    return this.transactionsRepository.listPaged(userId, { column: "account_id", id: accountId }, query);
   }
 }

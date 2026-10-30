@@ -1,19 +1,16 @@
-import { Injectable } from "@nestjs/common";
-import { AccountsRepository } from "../accounts/accounts.repository";
-import { CreateFundTransactionDto } from "../transactions/dto/create-fund-transaction.dto";
-import { ListTransactionsQueryDto } from "../transactions/dto/list-transactions-query.dto";
-import { TransactionType } from "../transactions/transaction-type.enum";
-import { TransactionsService } from "../transactions/transactions.service";
-import { CreateFundDto } from "./dto/create-fund.dto";
-import { MonthlyFlowQueryDto } from "./dto/monthly-flow-query.dto";
-import { UpdateFundDto } from "./dto/update-fund.dto";
-import { FundsRepository } from "./funds.repository";
+import type { AccountsRepository } from "../accounts/accounts.repository";
+import type { TransactionsRepository } from "../transactions/transactions.repository";
+import type { CreateFundTransactionDto, ListTransactionsQueryDto } from "../transactions/transactions.schemas";
+import type { TransactionsService } from "../transactions/transactions.service";
+import { TransactionType } from "../transactions/transactions.types";
+import type { FundsRepository } from "./funds.repository";
+import type { CreateFundDto, MonthlyFlowQueryDto, UpdateFundDto } from "./funds.schemas";
 
-@Injectable()
 export class FundsService {
   public constructor(
     private readonly fundsRepository: FundsRepository,
     private readonly accountsRepository: AccountsRepository,
+    private readonly transactionsRepository: TransactionsRepository,
     private readonly transactionsService: TransactionsService
   ) {}
 
@@ -39,34 +36,11 @@ export class FundsService {
   }
 
   public async topUp(userId: string, fundId: string, dto: CreateFundTransactionDto) {
-    await this.fundsRepository.ensureFundExists(userId, fundId);
-    await this.accountsRepository.ensureOwned(userId, dto.accountId);
-    return this.transactionsService.createLedgerTransaction({
-      userId,
-      fundId,
-      accountId: dto.accountId,
-      type: TransactionType.TOP_UP,
-      amountAbs: dto.amount,
-      description: dto.description,
-      occurredAt: dto.occurredAt,
-      idempotencyKey: dto.idempotencyKey
-    });
+    return this.postToFund(userId, fundId, TransactionType.TOP_UP, dto);
   }
 
   public async expense(userId: string, fundId: string, dto: CreateFundTransactionDto) {
-    await this.fundsRepository.ensureFundExists(userId, fundId);
-    await this.accountsRepository.ensureOwned(userId, dto.accountId);
-
-    return this.transactionsService.createLedgerTransaction({
-      userId,
-      fundId,
-      accountId: dto.accountId,
-      type: TransactionType.EXPENSE,
-      amountAbs: dto.amount,
-      description: dto.description,
-      occurredAt: dto.occurredAt,
-      idempotencyKey: dto.idempotencyKey
-    });
+    return this.postToFund(userId, fundId, TransactionType.EXPENSE, dto);
   }
 
   public async getBalance(userId: string, fundId: string): Promise<{ fundId: string; balance: number }> {
@@ -77,11 +51,31 @@ export class FundsService {
 
   public async getTransactions(userId: string, fundId: string, query: ListTransactionsQueryDto) {
     await this.fundsRepository.ensureFundExists(userId, fundId);
-    return this.fundsRepository.getFundTransactions(userId, fundId, query);
+    return this.transactionsRepository.listPaged(userId, { column: "fund_id", id: fundId }, query);
   }
 
   public async getMonthlyFlow(userId: string, fundId: string, query: MonthlyFlowQueryDto) {
     await this.fundsRepository.ensureFundExists(userId, fundId);
     return this.fundsRepository.getFundMonthlyFlow(userId, fundId, query);
+  }
+
+  private async postToFund(
+    userId: string,
+    fundId: string,
+    type: TransactionType.TOP_UP | TransactionType.EXPENSE,
+    dto: CreateFundTransactionDto
+  ) {
+    await this.fundsRepository.ensureFundExists(userId, fundId);
+    await this.accountsRepository.ensureOwned(userId, dto.accountId);
+    return this.transactionsService.createLedgerTransaction({
+      userId,
+      fundId,
+      accountId: dto.accountId,
+      type,
+      amountAbs: dto.amount,
+      description: dto.description,
+      occurredAt: dto.occurredAt,
+      idempotencyKey: dto.idempotencyKey
+    });
   }
 }

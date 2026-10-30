@@ -1,16 +1,24 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
-import { AccountsRepository } from "../accounts/accounts.repository";
-import { FundsRepository } from "../funds/funds.repository";
-import { CreateScheduledTopUpDto } from "./dto/create-scheduled-topup.dto";
-import { UpdateScheduledTopUpDto } from "./dto/update-scheduled-topup.dto";
-import { SchedulesRepository } from "./schedules.repository";
+import { AppError, notFound } from "../../common/errors";
+import type { AccountsRepository } from "../accounts/accounts.repository";
+import type { FundsRepository } from "../funds/funds.repository";
+import type { TransactionsService } from "../transactions/transactions.service";
+import { TransactionType } from "../transactions/transactions.types";
+import type { SchedulesRepository } from "./schedules.repository";
+import type { CreateScheduledTopUpDto, UpdateScheduledTopUpDto } from "./schedules.schemas";
 
-@Injectable()
+export interface ScheduledTopUpRunSummary {
+  runDate: string;
+  executed: number;
+  skipped: number;
+  failed: number;
+}
+
 export class SchedulesService {
   public constructor(
     private readonly schedulesRepository: SchedulesRepository,
     private readonly fundsRepository: FundsRepository,
-    private readonly accountsRepository: AccountsRepository
+    private readonly accountsRepository: AccountsRepository,
+    private readonly transactionsService: TransactionsService
   ) {}
 
   public async create(userId: string, dto: CreateScheduledTopUpDto) {
@@ -45,7 +53,7 @@ export class SchedulesService {
     });
 
     if (!updated) {
-      throw new NotFoundException("Schedule not found.");
+      throw notFound("Schedule not found.");
     }
     return updated;
   }
@@ -53,8 +61,59 @@ export class SchedulesService {
   public async delete(userId: string, scheduleId: string) {
     const deleted = await this.schedulesRepository.deleteSchedule(userId, scheduleId);
     if (!deleted) {
-      throw new NotFoundException("Schedule not found.");
+      throw notFound("Schedule not found.");
     }
     return { deleted: true };
+  }
+
+  // Posts every active schedule due on `now`'s (UTC) day of month. Safe to re-run on the same day:
+  // each schedule is recorded in scheduled_topup_runs and the transaction uses a deterministic idempotency key.
+  public async executeScheduledTopUps(now: Date): Promise<ScheduledTopUpRunSummary> {
+    const cycleDay = now.getUTCDate();
+    const runDate = now.toISOString().slice(0, 10);
+    const schedules = await this.schedulesRepository.getActiveSchedulesByDay(cycleDay);
+    const summary: ScheduledTopUpRunSummary = { runDate, executed: 0, skipped: 0, failed: 0 };
+
+    for (const schedule of schedules) {
+      if (await this.schedulesRepository.hasRunOnDate(schedule.id, runDate)) {
+        summary.skipped++;
+        continue;
+      }
+
+      try {
+        await this.transactionsService.createLedgerTransaction({
+          userId: schedule.user_id,
+          fundId: schedule.fund_id,
+          accountId: schedule.account_id,
+          type: TransactionType.TOP_UP,
+          amountAbs: Number(schedule.amount),
+          description: schedule.description ?? "Scheduled top-up",
+          idempotencyKey: `scheduled-topup:${schedule.id}:${runDate}`
+        });
+      } catch (error) {
+        // Already posted by an earlier run that failed before markRun: just record the run.
+        if (!(error instanceof AppError && error.code === "LEDGER_DUPLICATE_TRANSACTION")) {
+          summary.failed++;
+          console.error(
+            JSON.stringify({
+              level: "error",
+              event: "scheduled_topup_failed",
+              schedule_id: schedule.id,
+              run_date: runDate,
+              error: error instanceof Error ? error.message : String(error)
+            })
+          );
+          continue;
+        }
+      }
+
+      await this.schedulesRepository.markRun(schedule.id, runDate);
+      summary.executed++;
+      console.log(
+        JSON.stringify({ level: "info", event: "scheduled_topup_executed", schedule_id: schedule.id, run_date: runDate })
+      );
+    }
+
+    return summary;
   }
 }

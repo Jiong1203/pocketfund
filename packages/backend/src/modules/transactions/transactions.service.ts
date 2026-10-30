@@ -1,9 +1,6 @@
-import { HttpStatus, Injectable } from "@nestjs/common";
-import { randomUUID } from "crypto";
-import { AppException } from "../../common/errors/app-exception";
-import { TransactionType } from "./transaction-type.enum";
-import { TransactionsRepository } from "./transactions.repository";
-import { TransactionRecord } from "./transactions.types";
+import { AppError } from "../../common/errors";
+import type { TransactionsRepository } from "./transactions.repository";
+import { type TransactionRecord, TransactionType } from "./transactions.types";
 
 interface UpdateTransactionParams {
   type?: TransactionType;
@@ -12,7 +9,7 @@ interface UpdateTransactionParams {
   occurredAt?: string;
 }
 
-interface CreateLedgerTransactionParams {
+export interface CreateLedgerTransactionParams {
   userId: string;
   fundId: string;
   accountId: string;
@@ -23,13 +20,12 @@ interface CreateLedgerTransactionParams {
   idempotencyKey?: string;
 }
 
-@Injectable()
+const PG_UNIQUE_VIOLATION = "23505";
+
 export class TransactionsService {
   public constructor(private readonly transactionsRepository: TransactionsRepository) {}
 
-  public async createLedgerTransaction(
-    params: CreateLedgerTransactionParams
-  ): Promise<TransactionRecord> {
+  public async createLedgerTransaction(params: CreateLedgerTransactionParams): Promise<TransactionRecord> {
     const signedAmount = this.applyAmountSign(params.type, params.amountAbs);
     const occurredAt = params.occurredAt ?? new Date().toISOString();
 
@@ -42,17 +38,13 @@ export class TransactionsService {
         amount: signedAmount,
         description: params.description,
         occurredAt,
-        idempotencyKey: params.idempotencyKey ?? randomUUID()
+        idempotencyKey: params.idempotencyKey ?? crypto.randomUUID()
       });
     } catch (error) {
-      const typedError = error as { code?: string };
-      if (typedError.code === "23505") {
-        throw new AppException(
-          {
-            code: "LEDGER_DUPLICATE_TRANSACTION",
-            message: "Duplicate transaction request."
-          },
-          HttpStatus.CONFLICT
+      if ((error as { code?: string }).code === PG_UNIQUE_VIOLATION) {
+        throw new AppError(
+          { code: "LEDGER_DUPLICATE_TRANSACTION", message: "Duplicate transaction request." },
+          409
         );
       }
       throw error;
@@ -66,18 +58,20 @@ export class TransactionsService {
   ): Promise<TransactionRecord> {
     const existing = await this.transactionsRepository.findByIdAndUserId(id, userId);
     if (!existing) {
-      throw new AppException(
-        { code: "LEDGER_NOT_FOUND", message: "Transaction not found." },
-        HttpStatus.NOT_FOUND
-      );
+      throw new AppError({ code: "LEDGER_NOT_FOUND", message: "Transaction not found." }, 404);
     }
 
-    const updated = await this.transactionsRepository.updateTransaction(id, userId, params);
+    // Clients send amounts as positive values; re-apply the sign rule whenever amount or type changes
+    // so an edited EXPENSE stays negative (and a type switch flips the stored sign).
+    const fields = { ...params };
+    if (params.amount !== undefined || params.type !== undefined) {
+      const type = params.type ?? existing.type;
+      fields.amount = this.applyAmountSign(type, params.amount ?? Number(existing.amount));
+    }
+
+    const updated = await this.transactionsRepository.updateTransaction(id, userId, fields);
     if (!updated) {
-      throw new AppException(
-        { code: "VALIDATION_NO_FIELDS", message: "No updatable fields provided." },
-        HttpStatus.BAD_REQUEST
-      );
+      throw new AppError({ code: "VALIDATION_NO_FIELDS", message: "No updatable fields provided." }, 400);
     }
     return updated;
   }
@@ -85,20 +79,13 @@ export class TransactionsService {
   public async deleteTransaction(userId: string, id: string): Promise<void> {
     const deleted = await this.transactionsRepository.deleteTransaction(id, userId);
     if (!deleted) {
-      throw new AppException(
-        { code: "LEDGER_NOT_FOUND", message: "Transaction not found." },
-        HttpStatus.NOT_FOUND
-      );
+      throw new AppError({ code: "LEDGER_NOT_FOUND", message: "Transaction not found." }, 404);
     }
   }
 
   private applyAmountSign(type: TransactionType, amountAbs: number): number {
-    if (type === TransactionType.TOP_UP) {
-      return Math.abs(amountAbs);
-    }
-    if (type === TransactionType.EXPENSE) {
-      return -Math.abs(amountAbs);
-    }
+    if (type === TransactionType.TOP_UP) return Math.abs(amountAbs);
+    if (type === TransactionType.EXPENSE) return -Math.abs(amountAbs);
     return amountAbs;
   }
 }

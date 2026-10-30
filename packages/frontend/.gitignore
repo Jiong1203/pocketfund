@@ -22,3 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Cloudflare local state, build output, generated types, local secrets
+.cloudflare/
+.dev.vars*
+!.dev.vars.example
+.env

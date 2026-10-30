@@ -1,4 +1,8 @@
-import { TransactionType } from "./transaction-type.enum";
+export enum TransactionType {
+  TOP_UP = "TOP_UP",
+  EXPENSE = "EXPENSE",
+  TRANSFER = "TRANSFER"
+}
 
 export interface CreateTransactionInput {
   userId: string;
@@ -22,4 +26,9 @@ export interface TransactionRecord {
   occurred_at: string;
   idempotency_key: string;
   created_at: string;
+}
+
+export interface PagedTransactions {
+  items: TransactionRecord[];
+  meta: { page: number; pageSize: number; total: number };
 }

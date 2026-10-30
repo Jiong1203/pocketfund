@@ -6,12 +6,11 @@
     "packages/*"
   ],
   "scripts": {
-    "dev:backend": "npm run dev --workspace packages/backend",
-    "dev:frontend": "npm run dev --workspace packages/frontend",
-    "build": "npm run build --workspaces --if-present",
-    "typecheck": "npm run typecheck --workspace packages/backend"
-  },
-  "dependencies": {
-    "flyctl": "^1.2.6"
+    "dev": "npm run dev --workspace packages/frontend",
+    "build": "npm run build --workspace packages/frontend",
+    "deploy": "npm run deploy --workspace packages/frontend",
+    "migrate": "npm run migrate --workspace packages/backend",
+    "typecheck": "npm run typecheck --workspace packages/backend",
+    "test": "npm run test --workspace packages/backend"
   }
 }

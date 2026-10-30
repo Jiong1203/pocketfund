@@ -27,17 +27,18 @@ Policy:
 
 ## 2) Backend Structure and Layers
 
-Use NestJS and enforce a layered design:
+The backend runs on Cloudflare Workers using Hono (`packages/backend`), and enforces a layered design:
 
-- `modules/*`: feature modules (`funds`, `accounts`, `transactions`, `schedules`)
-- `controllers`: input/output and validation only, no business rules
-- `services`: business rules and ledger behavior
-- `repositories`: data access only
-- `jobs`: scheduling entry points (Phase 2: cron, Phase 3: queue consumers)
+- `modules/*`: feature modules (`auth`, `funds`, `accounts`, `transactions`, `schedules`)
+- `*.routes.ts`: input/output and validation only (zod schemas in `*.schemas.ts`), no business rules
+- `*.service.ts`: business rules and ledger behavior
+- `*.repository.ts`: data access only (`pg` through Hyperdrive)
+- `jobs`: scheduling entry points (Phase 2: Cron Triggers, Phase 3: queue consumers)
+- `container.ts`: wires repositories and services per request / cron run
 
 Rules:
 
-- Controllers must not call ORM queries directly.
+- Routes must not run SQL queries directly.
 - Schedulers must not contain business rules; they may only call services.
 - Any money movement must go through `TransactionService`.
 
@@ -108,16 +109,16 @@ The project follows an **async-first** implementation model:
 - Background jobs are the default for scheduled tasks, notifications, and heavy reporting workloads.
 - Request/response APIs should stay thin and offload non-critical work to job execution paths.
 
-Phase 2 may use `node-cron`, but must follow:
+Phase 2 uses Workers Cron Triggers (declared in `packages/frontend/cloudflare.config.ts`), and must follow:
 
 - Cron only triggers jobs; it does not contain business logic.
-- Scheduled top-up must call `TopUpService.executeScheduledTopUp(...)`.
+- Scheduled top-up must call `SchedulesService.executeScheduledTopUps(...)`.
 - Job runs must be logged with status (success/failure/retry count).
 
 Phase 3 readiness requirements:
 
 - Wrap schedule payloads as serializable data (directly enqueueable to BullMQ).
-- Keep service inputs/outputs runtime-agnostic to avoid cron lock-in.
+- Keep service inputs/outputs runtime-agnostic to avoid cron lock-in (BullMQ or Cloudflare Queues).
 
 ---
 
@@ -137,7 +138,7 @@ Phase 3 readiness requirements:
 
 ## 8) Validation and Security
 
-- All inputs must pass DTO/schema validation (type, range, required fields).
+- All inputs must pass zod schema validation (type, range, required fields); request bodies reject unknown fields.
 - Amount cannot be 0.
 - Enforce least privilege: users can only access their own funds/accounts/transactions.
 - Record audit logs for critical operations (fund creation, manual adjustments, schedule disablement).
@@ -185,7 +186,7 @@ Minimum test coverage:
 ## 12) Must-Not Rules
 
 - Do not treat persisted fund balance as the source of truth.
-- Do not place business logic in controllers.
+- Do not place business logic in routes.
 - Do not scatter SQL and rules across cron/job files.
 - Do not use floating-point numbers for money.
 - Do not hide or silently discard transactions without user intent; edit and delete are allowed but must be explicit user actions.

@@ -1,26 +1,19 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "CommonJS",
-    "moduleResolution": "Node",
+    "lib": ["ES2022"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
     "strict": true,
     "noImplicitAny": true,
-    "esModuleInterop": true,
-    "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
     "skipLibCheck": true,
-    "sourceMap": true,
-    "outDir": "dist",
-    "baseUrl": ".",
-    "types": [
-      "node"
-    ]
+    "types": []
   },
   "include": [
-    "src/**/*.ts"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist"
+    "src/**/*.ts",
+    // Workers runtime + binding types, generated from packages/frontend/cloudflare.config.ts
+    "../frontend/.cloudflare/types/index.d.ts"
   ]
 }
