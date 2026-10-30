@@ -11,6 +11,10 @@
           <AppIcon name="home" />
           <span>儀表板</span>
         </RouterLink>
+        <RouterLink :to="{ name: 'schedules' }" class="nav-link">
+          <AppIcon name="repeat" />
+          <span>自動儲值</span>
+        </RouterLink>
         <RouterLink :to="{ name: 'charts' }" class="nav-link">
           <AppIcon name="chart" />
           <span>圖表</span>
@@ -126,28 +130,35 @@ async function logout(): Promise<void> {
   margin-left: auto;
 }
 
-/* Phones: keep the brand mark only and show nav as icons. */
+/* Phones: the nav moves to a bottom tab bar so it stays reachable with one thumb. */
 @media (max-width: 640px) {
-  .app-header-inner {
-    gap: 8px;
-  }
-
-  .brand-name {
-    display: none;
+  /* backdrop-filter would make the header the containing block of the fixed tab bar. */
+  .app-header {
+    backdrop-filter: none;
+    background: var(--surface-color);
   }
 
   .nav {
-    margin-left: 0;
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 60;
+    justify-content: space-around;
+    gap: 0;
+    margin: 0;
+    padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+    background: color-mix(in srgb, var(--surface-color) 94%, transparent);
+    border-top: 1px solid var(--border-color);
+    backdrop-filter: blur(8px);
   }
 
   .nav-link {
-    padding: 6px 10px;
-  }
-}
-
-@media (max-width: 360px) {
-  .nav-link span {
-    display: none;
+    flex: 1;
+    flex-direction: column;
+    gap: 2px;
+    padding: 6px 4px;
+    font-size: 11px;
   }
 }
 </style>

@@ -71,7 +71,8 @@ export class SchedulesService {
   public async executeScheduledTopUps(now: Date): Promise<ScheduledTopUpRunSummary> {
     const cycleDay = now.getUTCDate();
     const runDate = now.toISOString().slice(0, 10);
-    const schedules = await this.schedulesRepository.getActiveSchedulesByDay(cycleDay);
+    const lastDayOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0)).getUTCDate();
+    const schedules = await this.schedulesRepository.getActiveSchedulesByDay(cycleDay, cycleDay === lastDayOfMonth);
     const summary: ScheduledTopUpRunSummary = { runDate, executed: 0, skipped: 0, failed: 0 };
 
     for (const schedule of schedules) {
@@ -87,7 +88,7 @@ export class SchedulesService {
           accountId: schedule.account_id,
           type: TransactionType.TOP_UP,
           amountAbs: Number(schedule.amount),
-          description: schedule.description ?? "Scheduled top-up",
+          description: schedule.description ?? "每月自動儲值",
           idempotencyKey: `scheduled-topup:${schedule.id}:${runDate}`
         });
       } catch (error) {

@@ -16,14 +16,15 @@ const SCHEDULE_COLUMNS = "id, user_id, fund_id, account_id, amount, cycle_day, d
 export class SchedulesRepository {
   public constructor(private readonly db: DatabaseService) {}
 
-  public async getActiveSchedulesByDay(cycleDay: number): Promise<ScheduledTopUpRow[]> {
+  // On the last day of a month, schedules set to a later day (e.g. 31 in a 30-day month) are due too.
+  public async getActiveSchedulesByDay(cycleDay: number, isLastDayOfMonth = false): Promise<ScheduledTopUpRow[]> {
     const result = await this.db.query<ScheduledTopUpRow>(
       `
       select ${SCHEDULE_COLUMNS}
       from scheduled_topups
-      where is_active = true and cycle_day = $1
+      where is_active = true and (cycle_day = $1 or ($2 and cycle_day > $1))
       `,
-      [cycleDay]
+      [cycleDay, isLastDayOfMonth]
     );
     return result.rows;
   }
@@ -114,11 +115,19 @@ export class SchedulesRepository {
     return result.rows[0] ?? null;
   }
 
+  // Run records only guard against double posting; the posted transactions stay in the ledger.
   public async deleteSchedule(userId: string, scheduleId: string): Promise<boolean> {
-    const result = await this.db.query("delete from scheduled_topups where user_id = $1 and id = $2", [
-      userId,
-      scheduleId
-    ]);
+    const result = await this.db.query(
+      `
+      with owned as (
+        select id from scheduled_topups where user_id = $1 and id = $2
+      ), removed_runs as (
+        delete from scheduled_topup_runs where schedule_id in (select id from owned)
+      )
+      delete from scheduled_topups where id in (select id from owned)
+      `,
+      [userId, scheduleId]
+    );
     return (result.rowCount ?? 0) > 0;
   }
 

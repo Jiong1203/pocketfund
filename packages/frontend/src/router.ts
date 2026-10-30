@@ -16,6 +16,12 @@ const router = createRouter({
       name: "dashboard",
       component: () => import("./views/DashboardView.vue")
     },
+    // Page paths must not overlap the API prefixes routed to the Worker (see API_PATHS in cloudflare.config.ts).
+    {
+      path: "/auto-topups",
+      name: "schedules",
+      component: () => import("./views/SchedulesView.vue")
+    },
     {
       path: "/charts",
       name: "charts",

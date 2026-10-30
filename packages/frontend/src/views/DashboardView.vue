@@ -13,26 +13,28 @@
       <!-- 基金卡片 -->
       <AppCard title="基金" class="funds-card">
         <template #actions>
-          <button type="button" class="btn btn-sm" @click="showFundDialog = true"><AppIcon name="plus" :size="16" />新增基金</button>
+          <button type="button" class="btn btn-sm" @click="openFundDialog()"><AppIcon name="plus" :size="16" />新增基金</button>
         </template>
         <div v-if="funds.length" class="total">
           <span class="total-label">基金總餘額</span>
           <span class="total-amount money" :class="{ expense: totalBalance < 0 }">{{ formatMoney(totalBalance) }}</span>
         </div>
         <ul v-if="funds.length" class="item-list">
-          <li v-for="fund in funds" :key="fund.id">
+          <li v-for="fund in funds" :key="fund.id" class="item-row fund-row" :class="{ selected: fund.id === queryForm.fundId }">
             <button
               type="button"
-              class="item-row fund-row"
-              :class="{ selected: fund.id === queryForm.fundId }"
+              class="fund-select"
               :aria-pressed="fund.id === queryForm.fundId"
               @click="selectFund(fund.id)"
             >
               <span class="fund-info">
                 <span class="item-name">{{ fund.name }}</span>
-                <span class="item-sub">每月 {{ fund.cycle_day }} 日補充</span>
+                <span class="item-sub">{{ fundScheduleText(fund) }}</span>
               </span>
               <span class="fund-balance money" :class="{ expense: fund.balance < 0 }">{{ formatMoney(fund.balance) }}</span>
+            </button>
+            <button type="button" class="btn btn-icon" title="編輯基金" :aria-label="`編輯基金 ${fund.name}`" @click="openFundDialog(fund)">
+              <AppIcon name="edit" :size="16" />
             </button>
           </li>
         </ul>
@@ -42,14 +44,14 @@
       <!-- 帳戶卡片 -->
       <AppCard title="帳戶" class="accounts-card">
         <template #actions>
-          <button type="button" class="btn btn-sm btn-secondary" @click="showAccountDialog = true"><AppIcon name="plus" :size="16" />新增帳戶</button>
+          <button type="button" class="btn btn-sm btn-secondary" @click="openAccountDialog()"><AppIcon name="plus" :size="16" />新增帳戶</button>
         </template>
         <ul v-if="accounts.length" class="item-list">
           <li v-for="account in accounts" :key="account.id" class="item-row">
             <span class="item-name">{{ account.name }}</span>
             <span class="item-badge">{{ account.type === 'salary' ? '薪轉戶' : '儲蓄戶' }}</span>
-            <button type="button" class="btn btn-icon danger" title="刪除帳戶" :aria-label="`刪除帳戶 ${account.name}`" @click="openDeleteAccountConfirm(account)">
-              <AppIcon name="trash" :size="16" />
+            <button type="button" class="btn btn-icon" title="編輯帳戶" :aria-label="`編輯帳戶 ${account.name}`" @click="openAccountDialog(account)">
+              <AppIcon name="edit" :size="16" />
             </button>
           </li>
         </ul>
@@ -102,15 +104,15 @@
       </AppCard>
     </div>
 
-    <!-- Dialog: 建立帳戶 -->
+    <!-- Dialog: 建立 / 編輯帳戶 -->
     <Teleport to="body">
       <div v-if="showAccountDialog" class="dialog-backdrop" @click.self="showAccountDialog = false">
         <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="account-dialog-title">
           <div class="dialog-head">
-            <h3 id="account-dialog-title">建立帳戶</h3>
+            <h3 id="account-dialog-title">{{ accountForm.id ? "編輯帳戶" : "建立帳戶" }}</h3>
             <button type="button" class="btn btn-icon" aria-label="關閉" @click="showAccountDialog = false"><AppIcon name="close" /></button>
           </div>
-          <form @submit.prevent="createAccount">
+          <form @submit.prevent="saveAccount">
             <label class="field">
               <span>帳戶名稱</span>
               <input v-model.trim="accountForm.name" placeholder="例：玉山薪轉戶" required />
@@ -123,34 +125,39 @@
               </select>
             </label>
             <div class="dialog-footer">
+              <button v-if="accountForm.id" type="button" class="btn btn-ghost text-danger footer-start" @click="openDeleteAccountConfirm">刪除帳戶</button>
               <button type="button" class="btn btn-ghost" @click="showAccountDialog = false">取消</button>
-              <button type="submit" class="btn" :disabled="submitting">{{ submitting ? "處理中..." : "建立帳戶" }}</button>
+              <button type="submit" class="btn" :disabled="submitting">{{ submitting ? "處理中..." : accountForm.id ? "儲存變更" : "建立帳戶" }}</button>
             </div>
           </form>
         </div>
       </div>
     </Teleport>
 
-    <!-- Dialog: 建立基金 -->
+    <!-- Dialog: 建立 / 編輯基金 -->
     <Teleport to="body">
       <div v-if="showFundDialog" class="dialog-backdrop" @click.self="showFundDialog = false">
         <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="fund-dialog-title">
           <div class="dialog-head">
-            <h3 id="fund-dialog-title">建立基金</h3>
+            <h3 id="fund-dialog-title">{{ fundForm.id ? "編輯基金" : "建立基金" }}</h3>
             <button type="button" class="btn btn-icon" aria-label="關閉" @click="showFundDialog = false"><AppIcon name="close" /></button>
           </div>
-          <form @submit.prevent="createFund">
+          <form @submit.prevent="saveFund">
             <label class="field">
               <span>基金名稱</span>
-              <input v-model.trim="fundForm.name" placeholder="例：生活費" required />
+              <input v-model.trim="fundForm.name" maxlength="80" placeholder="例：生活費" required />
             </label>
             <label class="field">
-              <span>每月補充日（1–31）</span>
-              <input v-model.number="fundForm.cycleDay" type="number" min="1" max="31" required />
+              <span>每月補充日</span>
+              <select v-model.number="fundForm.cycleDay" required>
+                <option v-for="day in 31" :key="day" :value="day">{{ day }} 日</option>
+              </select>
+              <small class="field-hint">新增自動儲值時會預設使用這一天。</small>
             </label>
             <div class="dialog-footer">
+              <button v-if="fundForm.id" type="button" class="btn btn-ghost text-danger footer-start" @click="openDeleteFundConfirm">刪除基金</button>
               <button type="button" class="btn btn-ghost" @click="showFundDialog = false">取消</button>
-              <button type="submit" class="btn" :disabled="submitting">{{ submitting ? "處理中..." : "建立基金" }}</button>
+              <button type="submit" class="btn" :disabled="submitting">{{ submitting ? "處理中..." : fundForm.id ? "儲存變更" : "建立基金" }}</button>
             </div>
           </form>
         </div>
@@ -225,11 +232,31 @@
           </div>
           <p class="confirm-text">
             確定要刪除帳戶 <strong>{{ deletingAccount?.name }}</strong> 嗎？<br />
-            <span class="confirm-desc">若該帳戶已有交易或排程紀錄，將無法刪除。</span>
+            <span class="confirm-desc">若該帳戶已有交易或自動儲值，將無法刪除。</span>
           </p>
           <div class="dialog-footer">
             <button type="button" class="btn btn-ghost" @click="showDeleteAccountConfirm = false">取消</button>
             <button type="button" class="btn btn-danger" :disabled="submitting" @click="confirmDeleteAccount">{{ submitting ? "處理中..." : "確認刪除" }}</button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- Confirm: 刪除基金 -->
+    <Teleport to="body">
+      <div v-if="deletingFund" class="dialog-backdrop" @click.self="deletingFund = null">
+        <div class="dialog dialog-sm" role="alertdialog" aria-modal="true" aria-labelledby="delete-fund-title">
+          <div class="dialog-head">
+            <h3 id="delete-fund-title">確認刪除基金</h3>
+            <button type="button" class="btn btn-icon" aria-label="關閉" @click="deletingFund = null"><AppIcon name="close" /></button>
+          </div>
+          <p class="confirm-text">
+            確定要刪除基金 <strong>{{ deletingFund.name }}</strong> 嗎？<br />
+            <span class="confirm-desc">只有沒有任何交易和自動儲值的基金可以刪除；有紀錄的基金請保留，以免帳目對不起來。</span>
+          </p>
+          <div class="dialog-footer">
+            <button type="button" class="btn btn-ghost" @click="deletingFund = null">取消</button>
+            <button type="button" class="btn btn-danger" :disabled="submitting" @click="confirmDeleteFund">{{ submitting ? "處理中..." : "確認刪除" }}</button>
           </div>
         </div>
       </div>
@@ -306,7 +333,7 @@ import TransactionTable from "../components/TransactionTable.vue";
 import { ApiError } from "../lib/api";
 import { formatMoney, toLocalDateInput, todayLocalDate } from "../lib/format";
 import { pocketfundApi } from "../services/pocketfund";
-import type { Account, Fund, PagedTransactions, TransactionRecord } from "../types/api";
+import type { Account, Fund, PagedTransactions, ScheduledTopUp, TransactionRecord } from "../types/api";
 
 const PAGE_SIZES = [10, 20, 50];
 const FLASH_DURATION_MS = 3000;
@@ -325,15 +352,21 @@ const showTxDialog = ref(false);
 const showEditTxDialog = ref(false);
 const showDeleteConfirm = ref(false);
 
+// An empty `id` means the dialog creates a new record; otherwise it edits that record.
 const accountForm = reactive({
+  id: "",
   name: "",
   type: "salary" as "salary" | "saving"
 });
 
 const fundForm = reactive({
+  id: "",
   name: "",
   cycleDay: 1
 });
+
+const schedules = ref<ScheduledTopUp[]>([]);
+const deletingFund = ref<{ id: string; name: string } | null>(null);
 
 const txForm = reactive({
   fundId: "",
@@ -421,8 +454,13 @@ async function loadBaseData(): Promise<void> {
   loading.value = true;
   clearFlash();
   try {
-    const [accountData] = await Promise.all([pocketfundApi.listAccounts(), loadFunds()]);
+    const [accountData, scheduleData] = await Promise.all([
+      pocketfundApi.listAccounts(),
+      pocketfundApi.listSchedules(),
+      loadFunds()
+    ]);
     accounts.value = accountData;
+    schedules.value = scheduleData;
 
     if (!queryForm.fundId && funds.value[0]) {
       queryForm.fundId = funds.value[0].id; // the watcher loads its transactions
@@ -441,25 +479,78 @@ async function refreshAfterLedgerWrite(): Promise<void> {
   await Promise.all([loadFunds(), loadTransactions()]);
 }
 
-function createAccount(): Promise<void> {
+// Fund subtitle: the active automatic top-ups when there are any, otherwise the fund's own cycle day.
+function fundScheduleText(fund: Fund): string {
+  const active = schedules.value.filter((schedule) => schedule.fund_id === fund.id && schedule.is_active);
+  if (active.length === 0) return `每月 ${fund.cycle_day} 日補充・未設定自動儲值`;
+  const total = active.reduce((sum, schedule) => sum + Number(schedule.amount), 0);
+  return active.length === 1
+    ? `每月 ${active[0]!.cycle_day} 日自動存入 ${formatMoney(total)}`
+    : `每月自動存入 ${formatMoney(total)}（${active.length} 筆）`;
+}
+
+function openAccountDialog(account?: Account): void {
+  accountForm.id = account?.id ?? "";
+  accountForm.name = account?.name ?? "";
+  accountForm.type = account?.type ?? "salary";
+  showAccountDialog.value = true;
+}
+
+function saveAccount(): Promise<void> {
   return runSubmit(async () => {
-    await pocketfundApi.createAccount(accountForm.name, accountForm.type);
-    accountForm.name = "";
+    if (accountForm.id) {
+      await pocketfundApi.updateAccount(accountForm.id, { name: accountForm.name, type: accountForm.type });
+    } else {
+      await pocketfundApi.createAccount(accountForm.name, accountForm.type);
+    }
     showAccountDialog.value = false;
     accounts.value = await pocketfundApi.listAccounts();
-    showSuccess("帳戶建立成功");
+    showSuccess(accountForm.id ? "帳戶已更新" : "帳戶建立成功");
   });
 }
 
-function createFund(): Promise<void> {
+function openFundDialog(fund?: Fund): void {
+  fundForm.id = fund?.id ?? "";
+  fundForm.name = fund?.name ?? "";
+  fundForm.cycleDay = fund?.cycle_day ?? 1;
+  showFundDialog.value = true;
+}
+
+function saveFund(): Promise<void> {
   return runSubmit(async () => {
-    const fund = await pocketfundApi.createFund(fundForm.name, Number(fundForm.cycleDay));
-    fundForm.name = "";
-    fundForm.cycleDay = 1;
+    if (fundForm.id) {
+      await pocketfundApi.updateFund(fundForm.id, { name: fundForm.name, cycleDay: fundForm.cycleDay });
+    } else {
+      const fund = await pocketfundApi.createFund(fundForm.name, fundForm.cycleDay);
+      if (!queryForm.fundId) queryForm.fundId = fund.id;
+    }
     showFundDialog.value = false;
     await loadFunds();
-    if (!queryForm.fundId) queryForm.fundId = fund.id;
-    showSuccess("基金建立成功");
+    showSuccess(fundForm.id ? "基金已更新" : "基金建立成功");
+  });
+}
+
+function openDeleteFundConfirm(): void {
+  const fund = funds.value.find((item) => item.id === fundForm.id);
+  deletingFund.value = { id: fundForm.id, name: fund?.name ?? fundForm.name };
+  showFundDialog.value = false;
+}
+
+function confirmDeleteFund(): Promise<void> {
+  return runSubmit(async () => {
+    const target = deletingFund.value;
+    if (!target) return;
+    try {
+      await pocketfundApi.deleteFund(target.id);
+      await loadFunds();
+      if (queryForm.fundId === target.id) {
+        transactions.value = null;
+        queryForm.fundId = funds.value[0]?.id ?? "";
+      }
+      showSuccess("基金已刪除");
+    } finally {
+      deletingFund.value = null;
+    }
   });
 }
 
@@ -546,8 +637,10 @@ function confirmDelete(): Promise<void> {
   });
 }
 
-function openDeleteAccountConfirm(account: { id: string; name: string }): void {
-  deletingAccount.value = account;
+function openDeleteAccountConfirm(): void {
+  const account = accounts.value.find((item) => item.id === accountForm.id);
+  deletingAccount.value = { id: accountForm.id, name: account?.name ?? accountForm.name };
+  showAccountDialog.value = false;
   showDeleteAccountConfirm.value = true;
 }
 
@@ -670,12 +763,7 @@ onMounted(async () => {
 }
 
 .fund-row {
-  width: 100%;
-  padding-right: 14px;
-  color: var(--text-color);
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
+  padding: 0 6px 0 0;
   transition: var(--transition-fast);
 }
 
@@ -683,7 +771,25 @@ onMounted(async () => {
   border-color: var(--border-strong-color);
 }
 
-.fund-row:focus-visible {
+.fund-select {
+  display: flex;
+  flex: 1;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  min-height: 52px;
+  padding: 8px 8px 8px 14px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-color);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.fund-select:focus-visible {
   outline: none;
   box-shadow: 0 0 0 3px var(--focus-ring-color);
 }
@@ -798,6 +904,19 @@ onMounted(async () => {
   background: var(--surface-color);
   color: var(--text-color);
   box-shadow: var(--shadow-sm);
+}
+
+.field-hint {
+  color: var(--text-muted-color);
+  font-size: 12px;
+}
+
+.text-danger {
+  color: var(--danger-color);
+}
+
+.footer-start {
+  margin-right: auto;
 }
 
 .confirm-text {

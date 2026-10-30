@@ -57,7 +57,7 @@
             </table>
             <p>頁面最上方的導覽列：</p>
             <ul>
-              <li><strong>「儀表板」/「圖表」</strong> — 切換主要頁面</li>
+              <li><strong>「儀表板」/「自動儲值」/「圖表」</strong> — 切換主要頁面（手機版位於畫面底部）</li>
               <li><strong>書本圖示</strong> — 開啟本使用手冊</li>
               <li><strong>月亮 / 太陽圖示</strong> — 切換深色 / 淺色主題</li>
               <li><strong>登出圖示</strong> — 結束工作階段</li>
@@ -65,7 +65,7 @@
           </section>
 
           <section id="account">
-            <h3>4. 建立帳戶</h3>
+            <h3>4. 建立與管理帳戶</h3>
             <p>「帳戶」代表資金實際存放的地方（例如銀行帳戶）。</p>
             <ol>
               <li>在帳戶卡片中，點擊 <strong>「＋ 新增帳戶」</strong>。</li>
@@ -79,25 +79,53 @@
               <li>點擊 <strong>「建立帳戶」</strong>。</li>
               <li>成功後，帳戶名稱出現在卡片列表中。</li>
             </ol>
+            <h4>修改或刪除帳戶</h4>
+            <ol>
+              <li>點擊帳戶右側的 <strong>鉛筆圖示</strong>，可修改帳戶名稱與類型。</li>
+              <li>在編輯視窗左下角點擊 <strong>「刪除帳戶」</strong>，確認後即可刪除。</li>
+            </ol>
+            <p class="note">已有交易或自動儲值的帳戶無法刪除，以免帳目對不起來。</p>
           </section>
 
           <section id="fund">
-            <h3>5. 建立基金</h3>
+            <h3>5. 建立與管理基金</h3>
             <p>「基金」代表資金的使用用途（例如：旅遊、日常開銷）。</p>
             <ol>
               <li>在基金卡片中，點擊 <strong>「＋ 新增基金」</strong>。</li>
               <li>輸入 <strong>基金名稱</strong>（例如：旅遊基金）。</li>
-              <li>輸入 <strong>循環日</strong>（數字 1–31），代表每月補充資金的起始日期。</li>
+              <li>選擇 <strong>每月補充日</strong>（1–31 日），新增自動儲值時會預設使用這一天。</li>
               <li>點擊 <strong>「建立基金」</strong>。</li>
-              <li>成功後，基金名稱與循環日出現在卡片列表中。</li>
+              <li>成功後，基金與目前餘額出現在卡片列表中。</li>
             </ol>
+            <h4>修改或刪除基金</h4>
+            <ol>
+              <li>點擊基金右側的 <strong>鉛筆圖示</strong>，可修改基金名稱與每月補充日。</li>
+              <li>在編輯視窗左下角點擊 <strong>「刪除基金」</strong>，確認後即可刪除。</li>
+            </ol>
+            <p class="note">只有沒有任何交易和自動儲值的基金可以刪除。</p>
+          </section>
+
+          <section id="auto-topup">
+            <h3>6. 自動儲值</h3>
+            <p>每月固定日期，自動把錢從帳戶存進基金，例如每月 5 日發薪後存 15,000 到「生活費」。</p>
+            <ol>
+              <li>點擊導覽列的 <strong>「自動儲值」</strong>，再點擊 <strong>「＋ 新增自動儲值」</strong>。</li>
+              <li>選擇 <strong>存入基金</strong> 與 <strong>從哪個帳戶</strong>。</li>
+              <li>輸入 <strong>每月金額</strong>，選擇 <strong>每月幾號</strong>，可加上說明。</li>
+              <li>點擊 <strong>「建立」</strong>，列表會顯示下次執行日期。</li>
+            </ol>
+            <ul>
+              <li><strong>開關</strong>：暫時不需要時可以關閉，之後再打開即可恢復。</li>
+              <li><strong>鉛筆圖示</strong>：修改帳戶、金額、日期或說明（基金建立後無法更換）。</li>
+              <li><strong>垃圾桶圖示</strong>：刪除自動儲值，之前已自動存入的交易會保留。</li>
+            </ul>
             <div class="tip-box">
-              <strong>範例：</strong> 循環日設為 <code>5</code>，表示每月 5 日為該基金的月結算起點。
+              <strong>執行時間：</strong> 每天台灣時間早上 8 點左右執行。若當月沒有設定的日期（例如 31 日遇到 30 天的月份），會在當月最後一天存入。
             </div>
           </section>
 
           <section id="transaction">
-            <h3>6. 新增交易</h3>
+            <h3>7. 新增交易</h3>
             <p>記錄資金的儲值或支出。</p>
             <ol>
               <li>點擊交易紀錄卡片右上角 <strong>「＋ 新增交易」</strong>。</li>
@@ -117,7 +145,7 @@
           </section>
 
           <section id="edit-delete">
-            <h3>7. 編輯與刪除交易</h3>
+            <h3>8. 編輯與刪除交易</h3>
             <p>若交易記錄有誤，可直接編輯或刪除。</p>
             <h4>編輯交易</h4>
             <ol>
@@ -134,7 +162,7 @@
           </section>
 
           <section id="query">
-            <h3>8. 查詢交易紀錄</h3>
+            <h3>9. 查詢交易紀錄</h3>
             <p>篩選並瀏覽指定基金的歷史交易。</p>
             <ol>
               <li>點擊基金卡片中的基金，或從篩選列的下拉選單選擇 <strong>基金</strong>。</li>
@@ -145,7 +173,7 @@
           </section>
 
           <section id="charts">
-            <h3>9. 基金圖表</h3>
+            <h3>10. 基金圖表</h3>
             <p>以月份為單位，視覺化呈現基金的收支走勢。</p>
             <p>點擊導覽列的 <strong>「圖表」</strong> 進入圖表頁：</p>
             <ol>
@@ -157,7 +185,7 @@
           </section>
 
           <section id="theme">
-            <h3>10. 主題切換</h3>
+            <h3>11. 主題切換</h3>
             <p>應用程式支援 <strong>淺色</strong> 與 <strong>深色</strong> 兩種主題。</p>
             <ul>
               <li>點擊導覽列的月亮圖示切換為深色主題，太陽圖示切換回淺色主題。</li>
@@ -167,7 +195,7 @@
           </section>
 
           <section id="logout">
-            <h3>11. 登出</h3>
+            <h3>12. 登出</h3>
             <ul>
               <li>點擊導覽列最右側的 <strong>登出圖示</strong>。</li>
               <li>系統清除登入狀態並跳轉至登入頁面。</li>
@@ -175,7 +203,7 @@
           </section>
 
           <section id="faq">
-            <h3>12. 常見問答</h3>
+            <h3>13. 常見問答</h3>
             <div class="faq-item">
               <p class="faq-q">Q: 基金餘額在哪裡查看？</p>
               <p>A: 儀表板的基金卡片會顯示每個基金的餘額與所有基金的總餘額，由交易紀錄即時加總計算。</p>
@@ -216,15 +244,16 @@ const toc = [
   { id: "getting-started", label: "1. 開始使用" },
   { id: "login", label: "2. 登入與註冊" },
   { id: "dashboard", label: "3. 儀表板總覽" },
-  { id: "account", label: "4. 建立帳戶" },
-  { id: "fund", label: "5. 建立基金" },
-  { id: "transaction", label: "6. 新增交易" },
-  { id: "edit-delete", label: "7. 編輯與刪除交易" },
-  { id: "query", label: "8. 查詢交易紀錄" },
-  { id: "charts", label: "9. 基金圖表" },
-  { id: "theme", label: "10. 主題切換" },
-  { id: "logout", label: "11. 登出" },
-  { id: "faq", label: "12. 常見問答" },
+  { id: "account", label: "4. 建立與管理帳戶" },
+  { id: "fund", label: "5. 建立與管理基金" },
+  { id: "auto-topup", label: "6. 自動儲值" },
+  { id: "transaction", label: "7. 新增交易" },
+  { id: "edit-delete", label: "8. 編輯與刪除交易" },
+  { id: "query", label: "9. 查詢交易紀錄" },
+  { id: "charts", label: "10. 基金圖表" },
+  { id: "theme", label: "11. 主題切換" },
+  { id: "logout", label: "12. 登出" },
+  { id: "faq", label: "13. 常見問答" },
 ];
 
 function scrollTo(id: string): void {

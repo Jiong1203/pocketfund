@@ -41,12 +41,26 @@ describe("SchedulesService.executeScheduledTopUps", () => {
 
     const summary = await service.executeScheduledTopUps(now);
 
-    expect(schedulesRepository.getActiveSchedulesByDay).toHaveBeenCalledWith(5);
+    expect(schedulesRepository.getActiveSchedulesByDay).toHaveBeenCalledWith(5, false);
     expect(transactionsService.createLedgerTransaction).toHaveBeenCalledWith(
       expect.objectContaining({ amountAbs: 1200, idempotencyKey: "scheduled-topup:s1:2026-11-05", type: "TOP_UP" })
     );
     expect(schedulesRepository.markRun).toHaveBeenCalledWith("s1", "2026-11-05");
     expect(summary).toEqual({ runDate: "2026-11-05", executed: 1, skipped: 0, failed: 0 });
+  });
+
+  it("also picks up later cycle days on the last day of a short month", async () => {
+    const { service, schedulesRepository } = setup([]);
+
+    await service.executeScheduledTopUps(new Date("2026-02-28T00:05:00Z"));
+    await service.executeScheduledTopUps(new Date("2026-11-30T00:05:00Z"));
+    await service.executeScheduledTopUps(new Date("2026-12-30T00:05:00Z"));
+
+    expect(schedulesRepository.getActiveSchedulesByDay.mock.calls).toEqual([
+      [28, true],
+      [30, true],
+      [30, false]
+    ]);
   });
 
   it("skips schedules that already ran today", async () => {

@@ -91,6 +91,13 @@ body {
   padding: 24px var(--page-gutter) 48px;
 }
 
+/* Leave room for the bottom tab bar on phones (see AppHeader). */
+@media (max-width: 640px) {
+  .page {
+    padding-bottom: calc(96px + env(safe-area-inset-bottom));
+  }
+}
+
 /* ── Buttons ── */
 .btn {
   display: inline-flex;

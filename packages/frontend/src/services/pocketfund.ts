@@ -5,6 +5,7 @@ import type {
   Fund,
   MonthlyFlowItem,
   PagedTransactions,
+  ScheduledTopUp,
   TransactionQuery
 } from "../types/api";
 
@@ -32,11 +33,41 @@ export const pocketfundApi = {
   createAccount(name: string, type: "salary" | "saving"): Promise<Account> {
     return api.post<Account>("/accounts", { name, type });
   },
+  updateAccount(id: string, data: { name?: string; type?: "salary" | "saving" }): Promise<Account> {
+    return api.patch<Account>(`/accounts/${id}`, data);
+  },
   deleteAccount(id: string): Promise<void> {
     return api.delete(`/accounts/${id}`);
   },
   listFunds(): Promise<Fund[]> {
     return api.get<Fund[]>("/funds");
+  },
+  updateFund(id: string, data: { name?: string; cycleDay?: number }): Promise<Fund> {
+    return api.patch<Fund>(`/funds/${id}`, data);
+  },
+  deleteFund(id: string): Promise<void> {
+    return api.delete(`/funds/${id}`);
+  },
+  listSchedules(): Promise<ScheduledTopUp[]> {
+    return api.get<ScheduledTopUp[]>("/schedules/top-ups");
+  },
+  createSchedule(data: {
+    fundId: string;
+    accountId: string;
+    amount: number;
+    cycleDay: number;
+    description?: string;
+  }): Promise<ScheduledTopUp> {
+    return api.post<ScheduledTopUp>("/schedules/top-ups", data);
+  },
+  updateSchedule(
+    id: string,
+    data: { accountId?: string; amount?: number; cycleDay?: number; description?: string; isActive?: boolean }
+  ): Promise<ScheduledTopUp> {
+    return api.patch<ScheduledTopUp>(`/schedules/top-ups/${id}`, data);
+  },
+  deleteSchedule(id: string): Promise<void> {
+    return api.delete(`/schedules/top-ups/${id}`);
   },
   createFund(name: string, cycleDay: number): Promise<Fund> {
     return api.post<Fund>("/funds", { name, cycleDay });

@@ -92,8 +92,10 @@ All endpoints except `/health` and `/auth/*` require `Authorization: Bearer <acc
 - Path: `packages/frontend/`
 - Pages:
   - `登入 / 註冊` 頁
-  - `儀表板`（帳戶、基金、交易新增、交易查詢）
-  - `基金圖表中心`（每月儲值/支出聚合圖）
+  - `儀表板`（基金餘額、帳戶與基金的新增 / 編輯 / 刪除、交易新增與查詢）
+  - `自動儲值`（`/auto-topups`，每月排程儲值的新增、暫停、編輯、刪除）
+  - `基金圖表`（每月儲值/支出聚合圖）
+- Page routes must not start with an API prefix (`/auth`, `/accounts`, `/funds`, `/transactions`, `/schedules`, `/health`); those paths are handled by the Worker, not the SPA.
 - Theme: `淺色 / 深色` toggle, persisted in `localStorage`
   - Light theme brand color: SHINee Pearl Aqua (`#7af5e0`); dark theme brand color: BABYMONSTER red (`#e60000`)
   - Design tokens and shared button / form / dialog styles live in `src/style.css`

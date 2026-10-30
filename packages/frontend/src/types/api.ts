@@ -27,6 +27,16 @@ export interface Fund {
   balance: number;
 }
 
+export interface ScheduledTopUp {
+  id: string;
+  fund_id: string;
+  account_id: string;
+  amount: string;
+  cycle_day: number;
+  description: string | null;
+  is_active: boolean;
+}
+
 export interface TransactionRecord {
   id: string;
   type: "TOP_UP" | "EXPENSE" | "TRANSFER";
