@@ -1,15 +1,8 @@
 <template>
-  <div class="dashboard">
-    <header class="top">
-      <div>
-        <h1>資金儀表板</h1>
-        <p>掌握每個基金還剩多少錢、花到哪裡去</p>
-      </div>
-      <div class="top-actions">
-        <button type="button" class="btn-secondary" @click="$router.push({ name: 'charts' })">查看基金圖表</button>
-        <button type="button" class="btn-secondary" @click="showManual = true">使用手冊</button>
-        <button type="button" class="btn-ghost" @click="logout">登出</button>
-      </div>
+  <div class="page dashboard">
+    <header class="page-head">
+      <h1>資金儀表板</h1>
+      <p>掌握每個基金還剩多少錢、花到哪裡去</p>
     </header>
 
     <FlashMessage v-if="loading" type="hint" text="載入中..." />
@@ -18,13 +11,13 @@
 
     <div class="grid">
       <!-- 基金卡片 -->
-      <AppCard title="基金">
+      <AppCard title="基金" class="funds-card">
         <template #actions>
-          <button type="button" class="btn-add" @click="showFundDialog = true">＋ 新增基金</button>
+          <button type="button" class="btn btn-sm" @click="showFundDialog = true"><AppIcon name="plus" :size="16" />新增基金</button>
         </template>
         <div v-if="funds.length" class="total">
           <span class="total-label">基金總餘額</span>
-          <span class="total-amount" :class="{ negative: totalBalance < 0 }">{{ formatMoney(totalBalance) }}</span>
+          <span class="total-amount money" :class="{ expense: totalBalance < 0 }">{{ formatMoney(totalBalance) }}</span>
         </div>
         <ul v-if="funds.length" class="item-list">
           <li v-for="fund in funds" :key="fund.id">
@@ -39,7 +32,7 @@
                 <span class="item-name">{{ fund.name }}</span>
                 <span class="item-sub">每月 {{ fund.cycle_day }} 日補充</span>
               </span>
-              <span class="fund-balance" :class="{ negative: fund.balance < 0 }">{{ formatMoney(fund.balance) }}</span>
+              <span class="fund-balance money" :class="{ expense: fund.balance < 0 }">{{ formatMoney(fund.balance) }}</span>
             </button>
           </li>
         </ul>
@@ -47,15 +40,17 @@
       </AppCard>
 
       <!-- 帳戶卡片 -->
-      <AppCard title="帳戶">
+      <AppCard title="帳戶" class="accounts-card">
         <template #actions>
-          <button type="button" class="btn-add" @click="showAccountDialog = true">＋ 新增帳戶</button>
+          <button type="button" class="btn btn-sm btn-secondary" @click="showAccountDialog = true"><AppIcon name="plus" :size="16" />新增帳戶</button>
         </template>
         <ul v-if="accounts.length" class="item-list">
           <li v-for="account in accounts" :key="account.id" class="item-row">
             <span class="item-name">{{ account.name }}</span>
             <span class="item-badge">{{ account.type === 'salary' ? '薪轉戶' : '儲蓄戶' }}</span>
-            <button type="button" class="btn-icon-danger" title="刪除帳戶" :aria-label="`刪除帳戶 ${account.name}`" @click="openDeleteAccountConfirm(account)">✕</button>
+            <button type="button" class="btn btn-icon danger" title="刪除帳戶" :aria-label="`刪除帳戶 ${account.name}`" @click="openDeleteAccountConfirm(account)">
+              <AppIcon name="trash" :size="16" />
+            </button>
           </li>
         </ul>
         <p v-else class="empty-hint">尚無帳戶，請新增錢實際存放的地方，例如「玉山薪轉戶」。</p>
@@ -64,7 +59,7 @@
       <!-- 交易紀錄 -->
       <AppCard :title="selectedFund ? `交易紀錄：${selectedFund.name}` : '交易紀錄'" class="wide">
         <template #actions>
-          <button type="button" class="btn-add" :disabled="!funds.length || !accounts.length" @click="openTxDialog">＋ 新增交易</button>
+          <button type="button" class="btn btn-sm" :disabled="!funds.length || !accounts.length" @click="openTxDialog"><AppIcon name="plus" :size="16" />新增交易</button>
         </template>
         <div class="filters">
           <label class="filter">
@@ -93,14 +88,15 @@
 
         <TransactionTable
           :rows="transactions?.items ?? []"
+          :empty-text="queryForm.type ? '這個條件下沒有交易紀錄' : '這個基金還沒有交易，按「新增交易」記第一筆吧'"
           @edit="openEditDialog"
           @delete="openDeleteConfirm"
         />
 
         <div v-if="totalPages > 1" class="pager">
-          <button type="button" class="btn-ghost" :disabled="queryForm.page <= 1" @click="goToPage(queryForm.page - 1)">← 上一頁</button>
+          <button type="button" class="btn btn-ghost" :disabled="queryForm.page <= 1" @click="goToPage(queryForm.page - 1)"><AppIcon name="chevronLeft" :size="16" />上一頁</button>
           <span class="pager-text">{{ pagerText }}</span>
-          <button type="button" class="btn-ghost" :disabled="queryForm.page >= totalPages" @click="goToPage(queryForm.page + 1)">下一頁 →</button>
+          <button type="button" class="btn btn-ghost" :disabled="queryForm.page >= totalPages" @click="goToPage(queryForm.page + 1)">下一頁<AppIcon name="chevronRight" :size="16" /></button>
         </div>
         <p v-else-if="transactions && transactions.meta.total > 0" class="pager-text">共 {{ transactions.meta.total }} 筆</p>
       </AppCard>
@@ -112,7 +108,7 @@
         <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="account-dialog-title">
           <div class="dialog-head">
             <h3 id="account-dialog-title">建立帳戶</h3>
-            <button type="button" class="btn-close" aria-label="關閉" @click="showAccountDialog = false">✕</button>
+            <button type="button" class="btn btn-icon" aria-label="關閉" @click="showAccountDialog = false"><AppIcon name="close" /></button>
           </div>
           <form @submit.prevent="createAccount">
             <label class="field">
@@ -127,8 +123,8 @@
               </select>
             </label>
             <div class="dialog-footer">
-              <button type="button" class="btn-ghost" @click="showAccountDialog = false">取消</button>
-              <button type="submit" :disabled="submitting">{{ submitting ? "處理中..." : "建立帳戶" }}</button>
+              <button type="button" class="btn btn-ghost" @click="showAccountDialog = false">取消</button>
+              <button type="submit" class="btn" :disabled="submitting">{{ submitting ? "處理中..." : "建立帳戶" }}</button>
             </div>
           </form>
         </div>
@@ -141,7 +137,7 @@
         <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="fund-dialog-title">
           <div class="dialog-head">
             <h3 id="fund-dialog-title">建立基金</h3>
-            <button type="button" class="btn-close" aria-label="關閉" @click="showFundDialog = false">✕</button>
+            <button type="button" class="btn btn-icon" aria-label="關閉" @click="showFundDialog = false"><AppIcon name="close" /></button>
           </div>
           <form @submit.prevent="createFund">
             <label class="field">
@@ -153,8 +149,8 @@
               <input v-model.number="fundForm.cycleDay" type="number" min="1" max="31" required />
             </label>
             <div class="dialog-footer">
-              <button type="button" class="btn-ghost" @click="showFundDialog = false">取消</button>
-              <button type="submit" :disabled="submitting">{{ submitting ? "處理中..." : "建立基金" }}</button>
+              <button type="button" class="btn btn-ghost" @click="showFundDialog = false">取消</button>
+              <button type="submit" class="btn" :disabled="submitting">{{ submitting ? "處理中..." : "建立基金" }}</button>
             </div>
           </form>
         </div>
@@ -167,7 +163,7 @@
         <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="edit-dialog-title">
           <div class="dialog-head">
             <h3 id="edit-dialog-title">編輯交易</h3>
-            <button type="button" class="btn-close" aria-label="關閉" @click="showEditTxDialog = false">✕</button>
+            <button type="button" class="btn btn-icon" aria-label="關閉" @click="showEditTxDialog = false"><AppIcon name="close" /></button>
           </div>
           <form @submit.prevent="saveEdit">
             <label class="field">
@@ -191,8 +187,8 @@
               <input v-model.trim="editTxForm.description" placeholder="例：三月份薪水" />
             </label>
             <div class="dialog-footer">
-              <button type="button" class="btn-ghost" @click="showEditTxDialog = false">取消</button>
-              <button type="submit" :disabled="submitting">{{ submitting ? "處理中..." : "儲存變更" }}</button>
+              <button type="button" class="btn btn-ghost" @click="showEditTxDialog = false">取消</button>
+              <button type="submit" class="btn" :disabled="submitting">{{ submitting ? "處理中..." : "儲存變更" }}</button>
             </div>
           </form>
         </div>
@@ -205,22 +201,19 @@
         <div class="dialog dialog-sm" role="alertdialog" aria-modal="true" aria-labelledby="delete-tx-title">
           <div class="dialog-head">
             <h3 id="delete-tx-title">確認刪除</h3>
-            <button type="button" class="btn-close" aria-label="關閉" @click="showDeleteConfirm = false">✕</button>
+            <button type="button" class="btn btn-icon" aria-label="關閉" @click="showDeleteConfirm = false"><AppIcon name="close" /></button>
           </div>
           <p class="confirm-text">
             確定要刪除這筆交易嗎？<br />
             <span class="confirm-desc">{{ deletingTx?.description }}</span>
           </p>
           <div class="dialog-footer">
-            <button type="button" class="btn-ghost" @click="showDeleteConfirm = false">取消</button>
-            <button type="button" class="btn-danger" :disabled="submitting" @click="confirmDelete">{{ submitting ? "處理中..." : "確認刪除" }}</button>
+            <button type="button" class="btn btn-ghost" @click="showDeleteConfirm = false">取消</button>
+            <button type="button" class="btn btn-danger" :disabled="submitting" @click="confirmDelete">{{ submitting ? "處理中..." : "確認刪除" }}</button>
           </div>
         </div>
       </div>
     </Teleport>
-
-    <!-- 使用手冊 -->
-    <UserManualModal v-model="showManual" />
 
     <!-- Confirm: 刪除帳戶 -->
     <Teleport to="body">
@@ -228,15 +221,15 @@
         <div class="dialog dialog-sm" role="alertdialog" aria-modal="true" aria-labelledby="delete-account-title">
           <div class="dialog-head">
             <h3 id="delete-account-title">確認刪除帳戶</h3>
-            <button type="button" class="btn-close" aria-label="關閉" @click="showDeleteAccountConfirm = false">✕</button>
+            <button type="button" class="btn btn-icon" aria-label="關閉" @click="showDeleteAccountConfirm = false"><AppIcon name="close" /></button>
           </div>
           <p class="confirm-text">
             確定要刪除帳戶 <strong>{{ deletingAccount?.name }}</strong> 嗎？<br />
             <span class="confirm-desc">若該帳戶已有交易或排程紀錄，將無法刪除。</span>
           </p>
           <div class="dialog-footer">
-            <button type="button" class="btn-ghost" @click="showDeleteAccountConfirm = false">取消</button>
-            <button type="button" class="btn-danger" :disabled="submitting" @click="confirmDeleteAccount">{{ submitting ? "處理中..." : "確認刪除" }}</button>
+            <button type="button" class="btn btn-ghost" @click="showDeleteAccountConfirm = false">取消</button>
+            <button type="button" class="btn btn-danger" :disabled="submitting" @click="confirmDeleteAccount">{{ submitting ? "處理中..." : "確認刪除" }}</button>
           </div>
         </div>
       </div>
@@ -248,7 +241,7 @@
         <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="tx-dialog-title">
           <div class="dialog-head">
             <h3 id="tx-dialog-title">新增交易</h3>
-            <button type="button" class="btn-close" aria-label="關閉" @click="showTxDialog = false">✕</button>
+            <button type="button" class="btn btn-icon" aria-label="關閉" @click="showTxDialog = false"><AppIcon name="close" /></button>
           </div>
           <form @submit.prevent="submitTransaction">
             <div class="segmented" role="radiogroup" aria-label="交易類型">
@@ -294,8 +287,8 @@
               <input v-model.trim="txForm.description" :placeholder="txForm.actionType === 'expenses' ? '例：午餐' : '例：三月份薪水'" />
             </label>
             <div class="dialog-footer">
-              <button type="button" class="btn-ghost" @click="showTxDialog = false">取消</button>
-              <button type="submit" :disabled="submitting">{{ submitting ? "處理中..." : "送出交易" }}</button>
+              <button type="button" class="btn btn-ghost" @click="showTxDialog = false">取消</button>
+              <button type="submit" class="btn" :disabled="submitting">{{ submitting ? "處理中..." : "送出交易" }}</button>
             </div>
           </form>
         </div>
@@ -306,21 +299,18 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from "vue";
-import { useRouter } from "vue-router";
 import AppCard from "../components/AppCard.vue";
+import AppIcon from "../components/AppIcon.vue";
 import FlashMessage from "../components/FlashMessage.vue";
 import TransactionTable from "../components/TransactionTable.vue";
-import UserManualModal from "../components/UserManualModal.vue";
 import { ApiError } from "../lib/api";
 import { formatMoney, toLocalDateInput, todayLocalDate } from "../lib/format";
-import { clearAccessToken } from "../lib/session";
 import { pocketfundApi } from "../services/pocketfund";
 import type { Account, Fund, PagedTransactions, TransactionRecord } from "../types/api";
 
 const PAGE_SIZES = [10, 20, 50];
 const FLASH_DURATION_MS = 3000;
 
-const router = useRouter();
 const loading = ref(false);
 const submitting = ref(false);
 const accounts = ref<Account[]>([]);
@@ -334,7 +324,6 @@ const showFundDialog = ref(false);
 const showTxDialog = ref(false);
 const showEditTxDialog = ref(false);
 const showDeleteConfirm = ref(false);
-const showManual = ref(false);
 
 const accountForm = reactive({
   name: "",
@@ -603,102 +592,36 @@ watch(
   }
 );
 
-async function logout(): Promise<void> {
-  clearAccessToken();
-  await router.push({ name: "login" });
-}
-
 onMounted(async () => {
   await loadBaseData();
 });
 </script>
 
 <style scoped>
-.dashboard {
-  padding: 24px;
-  max-width: 1200px;
-  margin: 0 auto;
+.page-head {
+  margin-bottom: 20px;
 }
 
-/* ── Header ── */
-.top {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-}
-
-.top h1 {
+.page-head h1 {
   margin: 0;
-  font-size: 28px;
+  font-size: 26px;
 }
 
-.top p {
+.page-head p {
   margin: 4px 0 0;
   color: var(--text-muted-color);
-}
-
-.top-actions {
-  display: flex;
-  gap: 12px;
 }
 
 /* ── Grid ── */
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 24px;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: 20px;
+  align-items: start;
 }
 
 .wide {
   grid-column: 1 / -1;
-}
-
-/* ── Buttons ── */
-button {
-  padding: 10px 16px;
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md, 12px);
-  background: var(--primary-color);
-  color: var(--primary-contrast);
-  border-color: var(--primary-color);
-  cursor: pointer;
-  font-weight: 600;
-  font-size: 14px;
-  transition: var(--transition-fast);
-}
-
-button:hover:not(:disabled) {
-  filter: brightness(0.95);
-  box-shadow: var(--shadow-sm);
-}
-
-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-secondary {
-  background: var(--surface-color);
-  color: var(--text-color);
-  border-color: var(--border-color);
-}
-
-.btn-ghost {
-  background: transparent;
-  color: var(--text-muted-color);
-  border-color: transparent;
-}
-
-.btn-ghost:hover:not(:disabled) {
-  background: var(--surface-muted-color);
-  color: var(--text-color);
-}
-
-.btn-add {
-  padding: 6px 12px;
-  font-size: 13px;
-  border-radius: var(--radius-md, 8px);
 }
 
 /* ── Fund total ── */
@@ -706,34 +629,32 @@ button:disabled {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  margin: 4px 0 12px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--border-color);
+  gap: 12px;
+  margin: 0 0 12px;
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  background: var(--primary-soft-color);
 }
 
 .total-label {
-  color: var(--text-muted-color);
+  color: var(--text-color);
   font-size: 14px;
+  font-weight: 600;
 }
 
 .total-amount {
-  font-size: 26px;
+  font-size: 28px;
   font-weight: 700;
-  font-variant-numeric: tabular-nums;
 }
 
-.negative {
-  color: var(--error-color);
-}
-
-/* ── Item list inside cards ── */
+/* ── Item lists inside cards ── */
 .item-list {
-  list-style: none;
-  margin: 8px 0 0;
-  padding: 0;
   display: flex;
   flex-direction: column;
   gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
 .item-row {
@@ -741,36 +662,48 @@ button:disabled {
   justify-content: space-between;
   align-items: center;
   gap: 8px;
-  padding: 10px 14px;
+  min-height: 52px;
+  padding: 8px 8px 8px 14px;
   background: var(--surface-color);
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-md, 10px);
+  border-radius: var(--radius-md);
 }
 
 .fund-row {
   width: 100%;
+  padding-right: 14px;
   color: var(--text-color);
-  font-weight: 400;
+  font: inherit;
   text-align: left;
+  cursor: pointer;
+  transition: var(--transition-fast);
 }
 
-.fund-row:hover:not(:disabled) {
-  filter: none;
+.fund-row:hover {
   border-color: var(--border-strong-color);
+}
+
+.fund-row:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--focus-ring-color);
 }
 
 .fund-row.selected {
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 2px var(--focus-ring-color);
+  box-shadow: inset 4px 0 0 var(--primary-color);
 }
 
 .fund-info {
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 
 .item-name {
-  font-weight: 500;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .item-sub {
@@ -780,20 +713,22 @@ button:disabled {
 
 .fund-balance {
   font-size: 16px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .item-badge {
-  font-size: 12px;
-  background: color-mix(in srgb, var(--primary-color) 12%, transparent);
-  color: var(--text-color);
+  margin-right: auto;
   padding: 2px 8px;
   border-radius: 99px;
+  background: var(--surface-muted-color);
+  color: var(--text-muted-color);
+  font-size: 12px;
+  white-space: nowrap;
 }
 
 .empty-hint {
-  margin: 12px 0 0;
+  margin: 4px 0 0;
   color: var(--text-muted-color);
   font-size: 14px;
 }
@@ -801,9 +736,9 @@ button:disabled {
 /* ── Filters ── */
 .filters {
   display: grid;
-  grid-template-columns: repeat(3, minmax(120px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .filter {
@@ -814,14 +749,8 @@ button:disabled {
   color: var(--text-muted-color);
 }
 
-input,
-select {
-  padding: 10px 14px;
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md, 12px);
-  background: var(--surface-color);
-  color: var(--text-color);
-  font-size: 14px;
+.filter select {
+  width: 100%;
 }
 
 /* ── Pager ── */
@@ -834,111 +763,41 @@ select {
 }
 
 .pager-text {
+  margin: 12px 0 0;
   color: var(--text-muted-color);
   font-size: 14px;
   text-align: center;
 }
 
-/* ── Dialog ── */
-.dialog-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.45);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 100;
-  backdrop-filter: blur(2px);
-}
-
-.dialog {
-  background: var(--surface-color);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md, 16px);
-  padding: 28px;
-  width: 100%;
-  max-width: 440px;
-  box-shadow: var(--shadow-md);
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.dialog-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.dialog-head h3 {
+.pager .pager-text {
   margin: 0;
-  font-size: 18px;
 }
 
-.btn-close {
-  background: transparent;
-  border-color: transparent;
-  color: var(--text-muted-color);
-  padding: 4px 8px;
-  font-size: 16px;
-}
-
-.btn-close:hover:not(:disabled) {
-  background: var(--surface-muted-color);
-  color: var(--text-color);
-}
-
-.dialog form {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-size: 14px;
-  color: var(--text-muted-color);
-}
-
-.field input,
-.field select {
-  width: 100%;
-  box-sizing: border-box;
-}
-
+/* ── Dialog extras ── */
 .segmented {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 4px;
   padding: 4px;
   background: var(--surface-muted-color);
-  border-radius: var(--radius-md, 12px);
+  border-radius: var(--radius-md);
 }
 
 .segmented button {
+  min-height: 40px;
+  border: none;
+  border-radius: var(--radius-sm);
   background: transparent;
-  border-color: transparent;
   color: var(--text-muted-color);
-  padding: 8px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
 }
 
 .segmented button.active {
   background: var(--surface-color);
   color: var(--text-color);
   box-shadow: var(--shadow-sm);
-}
-
-.dialog-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  margin-top: 4px;
-}
-
-.dialog-sm {
-  max-width: 360px;
 }
 
 .confirm-text {
@@ -952,30 +811,36 @@ select {
   font-size: 13px;
 }
 
-.btn-danger {
-  background: #ef4444;
-  border-color: #ef4444;
-  color: #fff;
+/* ── Responsive ── */
+@media (max-width: 860px) {
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
-.btn-danger:hover:not(:disabled) {
-  filter: brightness(0.9);
-}
+@media (max-width: 640px) {
+  .page-head h1 {
+    font-size: 22px;
+  }
 
-.btn-icon-danger {
-  background: transparent;
-  border-color: transparent;
-  color: var(--text-muted-color);
-  padding: 2px 6px;
-  font-size: 12px;
-  margin-left: auto;
-}
+  .grid {
+    gap: 16px;
+  }
 
-.btn-icon-danger:hover:not(:disabled) {
-  background: color-mix(in srgb, #ef4444 12%, transparent);
-  color: #ef4444;
-  border-color: transparent;
-  box-shadow: none;
-  filter: none;
+  .total-amount {
+    font-size: 24px;
+  }
+
+  .filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .filters .filter:first-child {
+    grid-column: 1 / -1;
+  }
+
+  .pager {
+    justify-content: space-between;
+  }
 }
 </style>

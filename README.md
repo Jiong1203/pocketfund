@@ -95,11 +95,14 @@ All endpoints except `/health` and `/auth/*` require `Authorization: Bearer <acc
   - `儀表板`（帳戶、基金、交易新增、交易查詢）
   - `基金圖表中心`（每月儲值/支出聚合圖）
 - Theme: `淺色 / 深色` toggle, persisted in `localStorage`
+  - Light theme brand color: SHINee Pearl Aqua (`#7af5e0`); dark theme brand color: BABYMONSTER red (`#e60000`)
+  - Design tokens and shared button / form / dialog styles live in `src/style.css`
+- Responsive: phones get icon navigation, card-style transaction rows, and bottom-sheet dialogs
 - Code layout:
   - API types in `src/types/api.ts`
   - API service layer in `src/services/pocketfund.ts`
   - reusable components in `src/components/*`
-  - ECharts chart component `FundFlowChart.vue` (loaded on chart page)
+  - lightweight SVG chart component `FundFlowChart.vue` (no charting library)
 
 ## Observability
 

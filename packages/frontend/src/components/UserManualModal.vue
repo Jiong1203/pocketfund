@@ -4,7 +4,7 @@
       <div class="manual-panel">
         <div class="manual-header">
           <h2>使用手冊</h2>
-          <button type="button" class="btn-close" @click="$emit('update:modelValue', false)">✕</button>
+          <button type="button" class="btn btn-icon" aria-label="關閉使用手冊" @click="$emit('update:modelValue', false)"><AppIcon name="close" /></button>
         </div>
 
         <nav class="manual-toc">
@@ -55,11 +55,12 @@
                 <tr><td>交易紀錄</td><td>查看、篩選、編輯、刪除所選基金的交易紀錄</td></tr>
               </tbody>
             </table>
-            <p>右上角按鈕：</p>
+            <p>頁面最上方的導覽列：</p>
             <ul>
-              <li><strong>「查看基金圖表」</strong> — 跳轉至圖表頁</li>
-              <li><strong>「使用手冊」</strong> — 開啟本手冊</li>
-              <li><strong>「登出」</strong> — 結束工作階段</li>
+              <li><strong>「儀表板」/「圖表」</strong> — 切換主要頁面</li>
+              <li><strong>書本圖示</strong> — 開啟本使用手冊</li>
+              <li><strong>月亮 / 太陽圖示</strong> — 切換深色 / 淺色主題</li>
+              <li><strong>登出圖示</strong> — 結束工作階段</li>
             </ul>
           </section>
 
@@ -120,13 +121,13 @@
             <p>若交易記錄有誤，可直接編輯或刪除。</p>
             <h4>編輯交易</h4>
             <ol>
-              <li>在交易列表中，點擊該筆交易右側的 <strong>「編輯」</strong> 按鈕。</li>
+              <li>在交易列表中，點擊該筆交易右側的 <strong>鉛筆圖示</strong>。</li>
               <li>修改 <strong>交易日期、類型、金額</strong> 或 <strong>說明</strong>。</li>
               <li>點擊 <strong>「儲存變更」</strong>。</li>
             </ol>
             <h4>刪除交易</h4>
             <ol>
-              <li>點擊該筆交易右側的 <strong>「刪除」</strong> 按鈕。</li>
+              <li>點擊該筆交易右側的 <strong>垃圾桶圖示</strong>。</li>
               <li>確認刪除對話框出現後，點擊 <strong>「確認刪除」</strong>。</li>
             </ol>
             <p class="note warning">刪除為永久操作，無法還原，請謹慎確認。</p>
@@ -146,20 +147,21 @@
           <section id="charts">
             <h3>9. 基金圖表</h3>
             <p>以月份為單位，視覺化呈現基金的收支走勢。</p>
-            <p>點擊右上角 <strong>「查看基金圖表」</strong> 進入圖表頁：</p>
+            <p>點擊導覽列的 <strong>「圖表」</strong> 進入圖表頁：</p>
             <ol>
-              <li>從下拉選單選擇要查看的 <strong>基金</strong>。</li>
-              <li>點擊 <strong>「更新圖表」</strong>。</li>
-              <li>圖表呈現每月儲值（藍色長條）與支出（紅色折線）趨勢。</li>
+              <li>從右上方的下拉選單選擇要查看的 <strong>基金</strong>，圖表會自動更新。</li>
+              <li>上方卡片顯示該基金的 <strong>目前餘額、累計儲值與累計支出</strong>。</li>
+              <li>長條圖以綠色呈現每月儲值、紅色呈現每月支出；將滑鼠移到（或點一下）月份，可在下方看到該月明細與淨額。</li>
             </ol>
-            <p>點擊左上角 <strong>「返回儀表板」</strong> 回到主頁面。</p>
+            <p>點擊導覽列的 <strong>「儀表板」</strong> 回到主頁面。</p>
           </section>
 
           <section id="theme">
             <h3>10. 主題切換</h3>
             <p>應用程式支援 <strong>淺色</strong> 與 <strong>深色</strong> 兩種主題。</p>
             <ul>
-              <li>點擊頁面右上角圓形按鈕切換主題（☀️ 淺色 / 🌙 深色）。</li>
+              <li>點擊導覽列的月亮圖示切換為深色主題，太陽圖示切換回淺色主題。</li>
+              <li>淺色主題以 SHINee 的珍珠薄荷綠為主色，深色主題以 BABYMONSTER 的紅色為主色。</li>
               <li>主題偏好儲存於瀏覽器，下次開啟時自動套用。</li>
             </ul>
           </section>
@@ -167,7 +169,7 @@
           <section id="logout">
             <h3>11. 登出</h3>
             <ul>
-              <li>點擊任意頁面右上角 <strong>「登出」</strong> 按鈕。</li>
+              <li>點擊導覽列最右側的 <strong>登出圖示</strong>。</li>
               <li>系統清除登入狀態並跳轉至登入頁面。</li>
             </ul>
           </section>
@@ -203,6 +205,7 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
+import AppIcon from "./AppIcon.vue";
 
 defineProps<{ modelValue: boolean }>();
 defineEmits<{ "update:modelValue": [value: boolean] }>();
@@ -250,7 +253,7 @@ function scrollTo(id: string): void {
   box-shadow: var(--shadow-md);
   width: 100%;
   max-width: 860px;
-  max-height: 88vh;
+  max-height: 88dvh;
   display: grid;
   grid-template-rows: auto auto 1fr;
   overflow: hidden;
@@ -270,22 +273,6 @@ function scrollTo(id: string): void {
   font-size: 20px;
 }
 
-.btn-close {
-  background: transparent;
-  border: none;
-  color: var(--text-muted-color);
-  font-size: 16px;
-  padding: 4px 8px;
-  cursor: pointer;
-  border-radius: var(--radius-md, 8px);
-  transition: var(--transition-fast);
-}
-
-.btn-close:hover {
-  background: var(--surface-color);
-  color: var(--text-color);
-}
-
 /* TOC */
 .manual-toc {
   display: flex;
@@ -298,7 +285,7 @@ function scrollTo(id: string): void {
 
 .manual-toc a {
   font-size: 12px;
-  color: var(--primary-color);
+  color: var(--accent-text-color);
   text-decoration: none;
   white-space: nowrap;
 }
@@ -325,7 +312,7 @@ section {
 section h3 {
   margin: 0;
   font-size: 16px;
-  color: var(--primary-color);
+  color: var(--accent-text-color);
   padding-bottom: 6px;
   border-bottom: 1px solid var(--border-color);
 }
@@ -407,7 +394,7 @@ th {
 
 code {
   background: color-mix(in srgb, var(--primary-color) 10%, transparent);
-  color: var(--primary-color);
+  color: var(--accent-text-color);
   padding: 1px 6px;
   border-radius: 4px;
   font-size: 13px;
@@ -426,6 +413,27 @@ code {
 
 .faq-q {
   font-weight: 600;
-  color: var(--primary-color) !important;
+  color: var(--accent-text-color) !important;
+}
+
+/* Phones: the manual takes the whole screen. */
+@media (max-width: 640px) {
+  .manual-backdrop {
+    padding: 0;
+  }
+
+  .manual-panel {
+    max-height: none;
+    height: 100dvh;
+    border-radius: 0;
+    border: none;
+  }
+
+  .manual-header,
+  .manual-toc,
+  .manual-body {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
 }
 </style>

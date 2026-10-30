@@ -1,26 +1,18 @@
-<script setup lang="ts">
-import { useTheme } from "../lib/theme";
-
-const { isDark, toggleTheme } = useTheme();
-</script>
-
 <template>
-  <button class="theme-toggle" type="button" @click="toggleTheme">
-    {{ isDark ? "切換淺色主題" : "切換深色主題" }}
+  <button
+    type="button"
+    class="btn btn-icon"
+    :aria-label="isDark ? '切換淺色主題' : '切換深色主題'"
+    :title="isDark ? '切換淺色主題' : '切換深色主題'"
+    @click="toggleTheme"
+  >
+    <AppIcon :name="isDark ? 'sun' : 'moon'" />
   </button>
 </template>
 
-<style scoped>
-.theme-toggle {
-  padding: 8px 10px;
-  border-radius: 8px;
-  border: 1px solid var(--border-color);
-  background: var(--surface-color);
-  color: var(--text-color);
-  cursor: pointer;
-}
+<script setup lang="ts">
+import { useTheme } from "../lib/theme";
+import AppIcon from "./AppIcon.vue";
 
-.theme-toggle:hover {
-  border-color: var(--primary-color);
-}
-</style>
+const { isDark, toggleTheme } = useTheme();
+</script>
