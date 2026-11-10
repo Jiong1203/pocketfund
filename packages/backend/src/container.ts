@@ -4,6 +4,8 @@ import { AccountsRepository } from "./modules/accounts/accounts.repository";
 import { AccountsService } from "./modules/accounts/accounts.service";
 import { AuthRepository } from "./modules/auth/auth.repository";
 import { AuthService } from "./modules/auth/auth.service";
+import { ExportsRepository } from "./modules/exports/exports.repository";
+import { ExportsService } from "./modules/exports/exports.service";
 import { FundsRepository } from "./modules/funds/funds.repository";
 import { FundsService } from "./modules/funds/funds.service";
 import { SchedulesRepository } from "./modules/schedules/schedules.repository";
@@ -23,6 +25,7 @@ export function createServices(db: DatabaseService, jwtSecret: string) {
     accounts: new AccountsService(accountsRepository, transactionsRepository),
     funds: new FundsService(fundsRepository, accountsRepository, transactionsRepository, transactionsService),
     transactions: transactionsService,
+    exports: new ExportsService(new ExportsRepository(db)),
     schedules: new SchedulesService(new SchedulesRepository(db), fundsRepository, accountsRepository, transactionsService)
   };
 }

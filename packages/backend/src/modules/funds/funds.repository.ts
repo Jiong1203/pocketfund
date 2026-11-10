@@ -1,5 +1,6 @@
 import type { DatabaseService } from "../../common/database";
 import { AppError, notFound } from "../../common/errors";
+import { APP_TIME_ZONE } from "../../common/time";
 import type { CreateFundDto, MonthlyFlowQueryDto, UpdateFundDto } from "./funds.schemas";
 
 interface BalanceRow {
@@ -176,7 +177,7 @@ export class FundsRepository {
     const result = await this.db.query<MonthlyFlowRow>(
       `
       select
-        to_char(date_trunc('month', occurred_at at time zone 'Asia/Taipei'), 'YYYY-MM') as month,
+        to_char(date_trunc('month', occurred_at at time zone '${APP_TIME_ZONE}'), 'YYYY-MM') as month,
         coalesce(sum(case when type = 'TOP_UP' then amount else 0 end), 0)::numeric(14,2) as top_up,
         coalesce(sum(case when type = 'EXPENSE' then abs(amount) else 0 end), 0)::numeric(14,2) as expense
       from transactions

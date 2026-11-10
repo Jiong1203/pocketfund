@@ -93,6 +93,12 @@ export const pocketfundApi = {
   deleteTransaction(id: string): Promise<void> {
     return api.delete(`/transactions/${id}`);
   },
+  exportBackup(): Promise<{ blob: Blob; fileName: string }> {
+    return api.download("/exports?format=json", "pocketfund-backup.json");
+  },
+  exportTransactionsCsv(): Promise<{ blob: Blob; fileName: string }> {
+    return api.download("/exports?format=csv", "pocketfund-transactions.csv");
+  },
   listFundMonthlyFlow(
     fundId: string,
     query: Pick<TransactionQuery, "startAt" | "endAt"> = {}

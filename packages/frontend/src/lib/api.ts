@@ -45,7 +45,8 @@ function toUserMessage(code: string | undefined, message: string | undefined, re
   return (code && ERROR_MESSAGES[code]) ?? message ?? FALLBACK_MESSAGE;
 }
 
-async function request<T>(path: string, init: RequestInit = {}, requiresAuth = true): Promise<T> {
+// Sends the request and turns any non-2xx answer into an ApiError (redirecting to login on an expired session).
+async function send(path: string, init: RequestInit, requiresAuth: boolean): Promise<Response> {
   const headers = new Headers(init.headers ?? {});
   headers.set("Content-Type", "application/json");
 
@@ -62,9 +63,9 @@ async function request<T>(path: string, init: RequestInit = {}, requiresAuth = t
   } catch {
     throw new ApiError(NETWORK_MESSAGE, "NETWORK_ERROR");
   }
-  const json = (await response.json().catch(() => ({}))) as { data?: T } & ApiErrorShape;
 
   if (!response.ok) {
+    const json = (await response.json().catch(() => ({}))) as ApiErrorShape;
     const code = json.error?.code ?? "HTTP_ERROR";
     if (response.status === 401 && requiresAuth) {
       clearAccessToken();
@@ -77,7 +78,19 @@ async function request<T>(path: string, init: RequestInit = {}, requiresAuth = t
     );
   }
 
+  return response;
+}
+
+async function request<T>(path: string, init: RequestInit = {}, requiresAuth = true): Promise<T> {
+  const response = await send(path, init, requiresAuth);
+  const json = (await response.json().catch(() => ({}))) as { data?: T };
   return json.data as T;
+}
+
+// Reads the server's suggested file name from Content-Disposition, e.g. attachment; filename="a.csv".
+function fileNameFrom(response: Response, fallback: string): string {
+  const match = /filename="([^"]+)"/.exec(response.headers.get("content-disposition") ?? "");
+  return match?.[1] ?? fallback;
 }
 
 export const api = {
@@ -102,5 +115,10 @@ export const api = {
   },
   delete<T>(path: string): Promise<T> {
     return request<T>(path, { method: "DELETE" });
+  },
+  // Raw bytes (blob) so a file keeps exactly what the server sent, including a CSV's BOM.
+  async download(path: string, fallbackName: string): Promise<{ blob: Blob; fileName: string }> {
+    const response = await send(path, { method: "GET" }, true);
+    return { blob: await response.blob(), fileName: fileNameFrom(response, fallbackName) };
   }
 };
