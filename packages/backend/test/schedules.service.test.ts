@@ -63,6 +63,24 @@ describe("SchedulesService.executeScheduledTopUps", () => {
     ]);
   });
 
+  it("uses the Taiwan calendar day, not the UTC one", async () => {
+    const { service, schedulesRepository, transactionsService } = setup([schedule("s1")]);
+
+    // 16:30 UTC on Nov 30 is 00:30 on Dec 1 in Taipei.
+    const summary = await service.executeScheduledTopUps(new Date("2026-11-30T16:30:00Z"));
+    // 16:30 UTC on Nov 29 is Nov 30 in Taipei, the last day of November.
+    await service.executeScheduledTopUps(new Date("2026-11-29T16:30:00Z"));
+
+    expect(schedulesRepository.getActiveSchedulesByDay.mock.calls).toEqual([
+      [1, false],
+      [30, true]
+    ]);
+    expect(transactionsService.createLedgerTransaction).toHaveBeenCalledWith(
+      expect.objectContaining({ idempotencyKey: "scheduled-topup:s1:2026-12-01" })
+    );
+    expect(summary.runDate).toBe("2026-12-01");
+  });
+
   it("skips schedules that already ran today", async () => {
     const { service, schedulesRepository, transactionsService } = setup([schedule("s1")]);
     schedulesRepository.hasRunOnDate.mockResolvedValue(true);

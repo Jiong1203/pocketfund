@@ -12,7 +12,7 @@ if (existsSync(localEnvFile)) process.loadEnvFile(localEnvFile);
 // The ID is not a secret.
 const HYPERDRIVE_ID = "3cae814ba77b4f5b84d3c5b15e6e566d";
 
-const API_PATHS = ["/health", "/auth", "/accounts", "/funds", "/transactions", "/schedules"];
+const API_PATHS = ["/health", "/auth", "/accounts", "/funds", "/transactions", "/schedules", "/exports"];
 
 export default defineConfig({
   worker: {

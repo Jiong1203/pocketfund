@@ -1,4 +1,5 @@
 import { AppError, notFound } from "../../common/errors";
+import { toAppCalendarDay } from "../../common/time";
 import type { AccountsRepository } from "../accounts/accounts.repository";
 import type { FundsRepository } from "../funds/funds.repository";
 import type { TransactionsService } from "../transactions/transactions.service";
@@ -66,13 +67,12 @@ export class SchedulesService {
     return { deleted: true };
   }
 
-  // Posts every active schedule due on `now`'s (UTC) day of month. Safe to re-run on the same day:
-  // each schedule is recorded in scheduled_topup_runs and the transaction uses a deterministic idempotency key.
+  // Posts every active schedule due on `now`'s day of month in Taiwan time, so the result does not depend on
+  // when the cron fires. Safe to re-run on the same day: each schedule is recorded in scheduled_topup_runs
+  // and the transaction uses a deterministic idempotency key.
   public async executeScheduledTopUps(now: Date): Promise<ScheduledTopUpRunSummary> {
-    const cycleDay = now.getUTCDate();
-    const runDate = now.toISOString().slice(0, 10);
-    const lastDayOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0)).getUTCDate();
-    const schedules = await this.schedulesRepository.getActiveSchedulesByDay(cycleDay, cycleDay === lastDayOfMonth);
+    const { isoDate: runDate, dayOfMonth: cycleDay, isLastDayOfMonth } = toAppCalendarDay(now);
+    const schedules = await this.schedulesRepository.getActiveSchedulesByDay(cycleDay, isLastDayOfMonth);
     const summary: ScheduledTopUpRunSummary = { runDate, executed: 0, skipped: 0, failed: 0 };
 
     for (const schedule of schedules) {

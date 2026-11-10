@@ -25,6 +25,7 @@
         <button type="button" class="btn btn-icon" aria-label="使用手冊" title="使用手冊" @click="showManual = true">
           <AppIcon name="book" />
         </button>
+        <ExportMenu />
         <ThemeToggle />
         <button type="button" class="btn btn-icon" aria-label="登出" title="登出" @click="logout">
           <AppIcon name="logout" />
@@ -40,6 +41,7 @@ import { ref } from "vue";
 import { RouterLink, useRouter } from "vue-router";
 import { clearAccessToken } from "../lib/session";
 import AppIcon from "./AppIcon.vue";
+import ExportMenu from "./ExportMenu.vue";
 import ThemeToggle from "./ThemeToggle.vue";
 import UserManualModal from "./UserManualModal.vue";
 

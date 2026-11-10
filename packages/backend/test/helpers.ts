@@ -42,7 +42,8 @@ export function createTestApp() {
       updateTransaction: vi.fn(),
       deleteTransaction: vi.fn()
     },
-    schedules: { create: vi.fn(), list: vi.fn(), update: vi.fn(), delete: vi.fn(), executeScheduledTopUps: vi.fn() }
+    schedules: { create: vi.fn(), list: vi.fn(), update: vi.fn(), delete: vi.fn(), executeScheduledTopUps: vi.fn() },
+    exports: { buildBackup: vi.fn(), buildTransactionsCsv: vi.fn() }
   } satisfies Partial<DeepMock<Services>>;
 
   const app = createApp({
@@ -58,7 +59,8 @@ export function createTestApp() {
     const body = options.rawBody ?? (options.body === undefined ? undefined : JSON.stringify(options.body));
     const res = await app.request(path, { method, headers, body }, {} as Env, executionCtx);
     const text = await res.text();
-    return { status: res.status, body: text ? JSON.parse(text) : null, headers: res.headers };
+    const isJson = res.headers.get("content-type")?.includes("json") ?? false;
+    return { status: res.status, body: text ? (isJson ? JSON.parse(text) : text) : null, headers: res.headers };
   }
 
   return { services, call };
