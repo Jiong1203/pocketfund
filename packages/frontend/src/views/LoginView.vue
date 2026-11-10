@@ -38,6 +38,7 @@
         <label class="field">
           <span>密碼</span>
           <input
+            ref="passwordInput"
             v-model="password"
             type="password"
             minlength="6"
@@ -45,6 +46,10 @@
             :autocomplete="mode === 'login' ? 'current-password' : 'new-password'"
             placeholder="至少 6 碼"
           />
+        </label>
+        <label class="remember">
+          <input v-model="rememberEmail" type="checkbox" />
+          <span>記住帳號</span>
         </label>
         <p v-if="errorMessage" class="error" role="alert">{{ errorMessage }}</p>
         <button type="submit" class="btn submit" :disabled="loading">
@@ -56,19 +61,27 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import ThemeToggle from "../components/ThemeToggle.vue";
 import { ApiError } from "../lib/api";
-import { setAccessToken } from "../lib/session";
+import { getRememberedEmail, setAccessToken, setRememberedEmail } from "../lib/session";
 import { pocketfundApi } from "../services/pocketfund";
 
 const router = useRouter();
-const email = ref("");
+const rememberedEmail = getRememberedEmail();
+const email = ref(rememberedEmail);
+const rememberEmail = ref(rememberedEmail !== "");
 const password = ref("");
+const passwordInput = ref<HTMLInputElement | null>(null);
 const loading = ref(false);
 const mode = ref<"login" | "register">("login");
 const errorMessage = ref("");
+
+// With the email already filled in, the next thing to type is the password.
+onMounted(() => {
+  if (rememberedEmail) passwordInput.value?.focus();
+});
 
 function switchMode(next: "login" | "register"): void {
   mode.value = next;
@@ -84,6 +97,7 @@ async function submit(): Promise<void> {
         ? await pocketfundApi.login(email.value, password.value)
         : await pocketfundApi.register(email.value, password.value);
     setAccessToken(data.accessToken);
+    setRememberedEmail(rememberEmail.value ? email.value : null);
     await router.push({ name: "dashboard" });
   } catch (error) {
     errorMessage.value = error instanceof ApiError ? error.message : "系統發生錯誤，請稍後再試。";
@@ -182,6 +196,28 @@ h1 {
 form {
   display: grid;
   gap: 14px;
+}
+
+.remember {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  justify-self: start;
+  color: var(--text-muted-color);
+  font-size: 14px;
+  cursor: pointer;
+  user-select: none;
+}
+
+/* Undo the global text-input sizing so the checkbox keeps its native size. */
+.remember input {
+  width: 16px;
+  height: 16px;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  accent-color: var(--primary-color);
+  cursor: pointer;
 }
 
 .submit {
