@@ -7,7 +7,7 @@ export enum TransactionType {
 export interface CreateTransactionInput {
   userId: string;
   fundId: string;
-  accountId: string;
+  accountId: string | null;
   type: TransactionType;
   amount: number;
   description?: string;
@@ -19,7 +19,7 @@ export interface CreateTransferInput {
   userId: string;
   fromFundId: string;
   toFundId: string;
-  accountId: string;
+  accountId: string | null;
   amountAbs: number;
   description?: string;
   occurredAt: string;
@@ -30,7 +30,8 @@ export interface TransactionRecord {
   id: string;
   user_id: string;
   fund_id: string;
-  account_id: string;
+  // Required for TOP_UP; expenses and transfers may have none.
+  account_id: string | null;
   type: TransactionType;
   amount: string;
   description: string | null;

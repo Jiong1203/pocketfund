@@ -1,8 +1,9 @@
 import type { AccountsRepository } from "../accounts/accounts.repository";
 import type { TransactionsRepository } from "../transactions/transactions.repository";
 import type {
-  CreateFundTransactionDto,
+  CreateExpenseDto,
   CreateFundTransferDto,
+  CreateTopUpDto,
   ListTransactionsQueryDto
 } from "../transactions/transactions.schemas";
 import type { TransactionsService } from "../transactions/transactions.service";
@@ -39,18 +40,18 @@ export class FundsService {
     return { deleted: true };
   }
 
-  public async topUp(userId: string, fundId: string, dto: CreateFundTransactionDto) {
+  public async topUp(userId: string, fundId: string, dto: CreateTopUpDto) {
     return this.postToFund(userId, fundId, TransactionType.TOP_UP, dto);
   }
 
-  public async expense(userId: string, fundId: string, dto: CreateFundTransactionDto) {
+  public async expense(userId: string, fundId: string, dto: CreateExpenseDto) {
     return this.postToFund(userId, fundId, TransactionType.EXPENSE, dto);
   }
 
   public async transfer(userId: string, fromFundId: string, dto: CreateFundTransferDto) {
     await this.fundsRepository.ensureFundExists(userId, fromFundId);
     await this.fundsRepository.ensureFundExists(userId, dto.toFundId);
-    await this.accountsRepository.ensureOwned(userId, dto.accountId);
+    if (dto.accountId) await this.accountsRepository.ensureOwned(userId, dto.accountId);
     return this.transactionsService.createFundTransfer({
       userId,
       fromFundId,
@@ -83,10 +84,10 @@ export class FundsService {
     userId: string,
     fundId: string,
     type: TransactionType.TOP_UP | TransactionType.EXPENSE,
-    dto: CreateFundTransactionDto
+    dto: CreateTopUpDto | CreateExpenseDto
   ) {
     await this.fundsRepository.ensureFundExists(userId, fundId);
-    await this.accountsRepository.ensureOwned(userId, dto.accountId);
+    if (dto.accountId) await this.accountsRepository.ensureOwned(userId, dto.accountId);
     return this.transactionsService.createLedgerTransaction({
       userId,
       fundId,

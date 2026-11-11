@@ -54,7 +54,7 @@ function toCsvRecord(row: TransactionSheetRow): string[] {
     row.occurred_on,
     TYPE_LABELS[row.type] ?? row.type,
     neutralizeFormula(row.fund_name),
-    neutralizeFormula(row.account_name),
+    neutralizeFormula(row.account_name ?? ""),
     row.amount,
     neutralizeFormula(row.description ?? ""),
     neutralizeFormula(row.counterpart_fund_name ?? ""),

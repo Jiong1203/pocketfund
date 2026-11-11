@@ -32,6 +32,8 @@ const ERROR_MESSAGES: Record<string, string> = {
   LEDGER_ACCOUNT_IN_USE: "這個帳戶已有交易或排程紀錄，無法刪除。",
   LEDGER_FUND_IN_USE: "這個基金已有交易或排程紀錄，無法刪除。",
   LEDGER_TRANSFER_SAME_FUND: "轉出和轉入不能是同一個基金。",
+  LEDGER_ACCOUNT_REQUIRED: "儲值需要選擇錢從哪個帳戶存入。",
+  LEDGER_TRANSFER_ACCOUNT_LOCKED: "轉帳不能指定帳戶。",
   LEDGER_TRANSFER_TYPE_LOCKED: "轉帳不能改成其他類型，其他交易也不能改成轉帳。",
   RESOURCE_NOT_FOUND: "找不到資料，可能已被刪除。"
 };

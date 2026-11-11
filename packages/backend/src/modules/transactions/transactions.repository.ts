@@ -115,7 +115,7 @@ export class TransactionsRepository {
   public async updateTransaction(
     id: string,
     userId: string,
-    fields: { type?: string; amount?: number; description?: string; occurredAt?: string }
+    fields: { type?: string; amount?: number; description?: string; occurredAt?: string; accountId?: string }
   ): Promise<TransactionRecord | null> {
     const sets: string[] = [];
     const values: unknown[] = [];
@@ -136,6 +136,10 @@ export class TransactionsRepository {
     if (fields.occurredAt !== undefined) {
       sets.push(`occurred_at = $${idx++}`);
       values.push(fields.occurredAt);
+    }
+    if (fields.accountId !== undefined) {
+      sets.push(`account_id = $${idx++}`);
+      values.push(fields.accountId);
     }
     if (sets.length === 0) return null;
 

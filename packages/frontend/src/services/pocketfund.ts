@@ -81,20 +81,24 @@ export const pocketfundApi = {
   },
   createTransfer(
     fromFundId: string,
-    data: { toFundId: string; accountId: string; amount: number; description?: string; occurredAt?: string }
+    data: { toFundId: string; amount: number; description?: string; occurredAt?: string }
   ): Promise<unknown> {
     return api.post(`/funds/${fromFundId}/transfers`, data);
   },
   createTopUp(fundId: string, accountId: string, amount: number, description?: string, occurredAt?: string): Promise<unknown> {
     return api.post(`/funds/${fundId}/top-ups`, { accountId, amount, description: description || undefined, occurredAt });
   },
-  createExpense(fundId: string, accountId: string, amount: number, description?: string, occurredAt?: string): Promise<unknown> {
-    return api.post(`/funds/${fundId}/expenses`, { accountId, amount, description: description || undefined, occurredAt });
+  // Expenses only come out of a fund, so no account is sent.
+  createExpense(fundId: string, amount: number, description?: string, occurredAt?: string): Promise<unknown> {
+    return api.post(`/funds/${fundId}/expenses`, { amount, description: description || undefined, occurredAt });
   },
   listFundTransactions(fundId: string, query: TransactionQuery): Promise<PagedTransactions> {
     return api.get<PagedTransactions>(`/funds/${fundId}/transactions${buildTransactionQuery(query)}`);
   },
-  updateTransaction(id: string, data: { type?: string; amount?: number; description?: string; occurredAt?: string }): Promise<unknown> {
+  updateTransaction(
+    id: string,
+    data: { type?: string; amount?: number; description?: string; occurredAt?: string; accountId?: string }
+  ): Promise<unknown> {
     return api.patch(`/transactions/${id}`, data);
   },
   deleteTransaction(id: string): Promise<void> {

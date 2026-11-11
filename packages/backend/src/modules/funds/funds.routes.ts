@@ -2,8 +2,9 @@ import { Hono } from "hono";
 import type { AppEnv } from "../../app-env";
 import { parseInput, uuidParam } from "../../common/validation";
 import {
-  createFundTransactionSchema,
+  createExpenseSchema,
   createFundTransferSchema,
+  createTopUpSchema,
   listTransactionsQuerySchema
 } from "../transactions/transactions.schemas";
 import { createFundSchema, monthlyFlowQuerySchema, updateFundSchema } from "./funds.schemas";
@@ -31,12 +32,12 @@ export const fundsRoutes = new Hono<AppEnv>()
   })
   .post("/:id/top-ups", async (c) => {
     const { id } = parseInput(uuidParam, c.req.param());
-    const dto = parseInput(createFundTransactionSchema, await c.req.json());
+    const dto = parseInput(createTopUpSchema, await c.req.json());
     return c.json({ data: await c.var.services.funds.topUp(c.var.user.id, id, dto) }, 201);
   })
   .post("/:id/expenses", async (c) => {
     const { id } = parseInput(uuidParam, c.req.param());
-    const dto = parseInput(createFundTransactionSchema, await c.req.json());
+    const dto = parseInput(createExpenseSchema, await c.req.json());
     return c.json({ data: await c.var.services.funds.expense(c.var.user.id, id, dto) }, 201);
   })
   .post("/:id/transfers", async (c) => {
