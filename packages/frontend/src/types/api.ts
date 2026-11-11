@@ -14,6 +14,12 @@ export interface AuthResult {
   user: UserInfo;
 }
 
+export interface UserProfile {
+  id: string;
+  email: string;
+  createdAt: string;
+}
+
 export interface Account {
   id: string;
   name: string;

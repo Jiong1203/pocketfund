@@ -25,6 +25,9 @@
         <button type="button" class="btn btn-icon" aria-label="使用手冊" title="使用手冊" @click="showManual = true">
           <AppIcon name="book" />
         </button>
+        <RouterLink :to="{ name: 'profile' }" class="btn btn-icon" aria-label="個人中心" title="個人中心">
+          <AppIcon name="user" />
+        </RouterLink>
         <ExportMenu />
         <ThemeToggle />
         <button type="button" class="btn btn-icon" aria-label="登出" title="登出" @click="logout">

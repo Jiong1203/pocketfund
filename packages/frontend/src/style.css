@@ -114,6 +114,7 @@ body {
   font-size: 14px;
   font-weight: 600;
   line-height: 1.2;
+  text-decoration: none; /* .btn is also used on RouterLink anchors */
   cursor: pointer;
   white-space: nowrap;
   transition: var(--transition-fast);

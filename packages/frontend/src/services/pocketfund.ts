@@ -6,7 +6,8 @@ import type {
   MonthlyFlowItem,
   PagedTransactions,
   ScheduledTopUp,
-  TransactionQuery
+  TransactionQuery,
+  UserProfile
 } from "../types/api";
 
 function buildTransactionQuery(query: TransactionQuery): string {
@@ -26,6 +27,12 @@ export const pocketfundApi = {
   },
   login(email: string, password: string): Promise<AuthResult> {
     return api.post<AuthResult>("/auth/login", { email, password }, false);
+  },
+  getProfile(): Promise<UserProfile> {
+    return api.get<UserProfile>("/me");
+  },
+  changePassword(currentPassword: string, newPassword: string): Promise<void> {
+    return api.put("/me/password", { currentPassword, newPassword });
   },
   listAccounts(): Promise<Account[]> {
     return api.get<Account[]>("/accounts");
