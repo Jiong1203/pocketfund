@@ -26,6 +26,11 @@ const router = createRouter({
       path: "/charts",
       name: "charts",
       component: () => import("./views/FundChartView.vue")
+    },
+    {
+      path: "/profile",
+      name: "profile",
+      component: () => import("./views/ProfileView.vue")
     }
   ]
 });

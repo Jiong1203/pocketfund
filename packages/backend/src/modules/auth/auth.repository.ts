@@ -35,6 +35,19 @@ export class AuthRepository {
     return result.rows[0] ?? null;
   }
 
+  public async findById(userId: string): Promise<UserRow | null> {
+    const result = await this.db.query<UserRow>(
+      `
+      select id, email, password_hash, created_at
+      from users
+      where id = $1
+      limit 1
+      `,
+      [userId]
+    );
+    return result.rows[0] ?? null;
+  }
+
   public async updatePasswordHash(userId: string, passwordHash: string): Promise<void> {
     await this.db.query("update users set password_hash = $2 where id = $1", [
       userId,

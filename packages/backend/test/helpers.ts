@@ -17,6 +17,8 @@ export function createTestApp() {
     auth: {
       register: vi.fn(),
       login: vi.fn(),
+      getProfile: vi.fn(),
+      changePassword: vi.fn(),
       verifyAccessToken: vi.fn(async (token: string) => {
         if (token !== VALID_TOKEN) throw unauthorized("Invalid or expired token.");
         return USER;

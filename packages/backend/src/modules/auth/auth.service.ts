@@ -2,8 +2,8 @@ import { sign, verify } from "hono/jwt";
 import { AppError, unauthorized } from "../../common/errors";
 import { hashPassword, verifyPassword } from "../../common/password";
 import type { AuthRepository } from "./auth.repository";
-import type { CredentialsDto } from "./auth.schemas";
-import type { AuthResult, AuthUser } from "./auth.types";
+import type { ChangePasswordDto, CredentialsDto } from "./auth.schemas";
+import type { AuthResult, AuthUser, UserProfile } from "./auth.types";
 
 const TOKEN_TTL_SECONDS = 7 * 24 * 60 * 60;
 const JWT_ALGORITHM = "HS256";
@@ -39,6 +39,31 @@ export class AuthService {
     }
 
     return this.buildAuthResponse({ id: user.id, email: user.email });
+  }
+
+  public async getProfile(userId: string): Promise<UserProfile> {
+    const user = await this.authRepository.findById(userId);
+    if (!user) {
+      throw unauthorized("User no longer exists.");
+    }
+    return { id: user.id, email: user.email, createdAt: user.created_at };
+  }
+
+  // A wrong current password is a 400, not a 401: the session itself is still valid,
+  // and a 401 would make the client sign the user out.
+  public async changePassword(userId: string, dto: ChangePasswordDto): Promise<void> {
+    const user = await this.authRepository.findById(userId);
+    if (!user) {
+      throw unauthorized("User no longer exists.");
+    }
+
+    const check = await verifyPassword(dto.currentPassword, user.password_hash);
+    if (!check.valid) {
+      throw new AppError({ code: "AUTH_INVALID_CURRENT_PASSWORD", message: "Current password is incorrect." }, 400);
+    }
+
+    await this.authRepository.updatePasswordHash(user.id, await hashPassword(dto.newPassword));
+    console.log(JSON.stringify({ level: "info", event: "audit", action: "password_changed", user_id: user.id }));
   }
 
   public async verifyAccessToken(token: string): Promise<AuthUser> {

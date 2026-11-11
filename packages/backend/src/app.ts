@@ -6,6 +6,7 @@ import { AppError, unauthorized } from "./common/errors";
 import { openServiceScope, type ServiceScope } from "./container";
 import { accountsRoutes } from "./modules/accounts/accounts.routes";
 import { authRoutes } from "./modules/auth/auth.routes";
+import { meRoutes } from "./modules/auth/me.routes";
 import { exportsRoutes } from "./modules/exports/exports.routes";
 import { fundsRoutes } from "./modules/funds/funds.routes";
 import { schedulesRoutes } from "./modules/schedules/schedules.routes";
@@ -35,7 +36,7 @@ export function createApp(deps: AppDeps = { openServiceScope }) {
     }
   });
 
-  for (const path of ["/accounts/*", "/funds/*", "/transactions/*", "/schedules/*", "/exports/*"]) {
+  for (const path of ["/accounts/*", "/funds/*", "/transactions/*", "/schedules/*", "/exports/*", "/me/*"]) {
     app.use(path, requireAuth);
   }
 
@@ -45,6 +46,7 @@ export function createApp(deps: AppDeps = { openServiceScope }) {
   app.route("/transactions", transactionsRoutes);
   app.route("/schedules", schedulesRoutes);
   app.route("/exports", exportsRoutes);
+  app.route("/me", meRoutes);
 
   app.notFound((c) => c.json({ error: { code: "RESOURCE_NOT_FOUND", message: "Route not found." } }, 404));
 

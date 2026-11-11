@@ -24,6 +24,7 @@ export class ApiError extends Error {
 const ERROR_MESSAGES: Record<string, string> = {
   AUTH_UNAUTHORIZED: "登入已過期，請重新登入。",
   AUTH_EMAIL_ALREADY_EXISTS: "這個電子郵件已經註冊過了。",
+  AUTH_INVALID_CURRENT_PASSWORD: "目前的密碼不正確。",
   VALIDATION_ERROR: "輸入的資料格式不正確，請檢查後再試一次。",
   VALIDATION_NO_FIELDS: "沒有需要更新的欄位。",
   LEDGER_DUPLICATE_TRANSACTION: "這筆交易已經送出過了。",
@@ -110,6 +111,12 @@ export const api = {
   patch<T>(path: string, body: unknown): Promise<T> {
     return request<T>(path, {
       method: "PATCH",
+      body: JSON.stringify(body)
+    });
+  },
+  put<T>(path: string, body: unknown): Promise<T> {
+    return request<T>(path, {
+      method: "PUT",
       body: JSON.stringify(body)
     });
   },
