@@ -18,7 +18,7 @@ Policy:
 
 - **Ledger First**: `transaction` is the single source of truth.
 - **Balance by Query**: fund balance is always computed from transactions; do not persist `fund_balance`.
-- **Decouple Account and Fund**: `account` means where money is stored; `fund` means what money is for.
+- **Decouple Account and Fund**: `account` means where money comes from; `fund` means what money is for. Money enters a fund from an account through a top-up; after that, expenses and fund-to-fund transfers concern funds only.
 - **Edit-Friendly**: direct edit and delete on transactions is allowed. PocketFund is a personal app — users should be able to fix mistakes directly without learning special correction patterns.
 - **Traceability**: every transaction must be traceable by source, time, operator, and description.
 - **Async-First Development**: design long-running, retryable, or heavy workloads as asynchronous jobs by default.
@@ -97,7 +97,8 @@ Data integrity:
 - Prevent duplicate posting for the same request:
   - implement `idempotency_key` (client-provided or generated)
 - Every transaction must include:
-  - `fund_id`, `account_id`, `type`, `amount`, `occurred_at`
+  - `fund_id`, `type`, `amount`, `occurred_at`
+  - `account_id` for `TOP_UP` (the source of the money; enforced by a DB check constraint). Optional for `EXPENSE` and `TRANSFER`.
   - `description` (optional but recommended)
 
 ---

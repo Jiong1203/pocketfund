@@ -16,7 +16,10 @@ function setup() {
   const fundsRepository = { ensureFundExists: vi.fn(), getFundBalance: vi.fn() };
   const accountsRepository = { ensureOwned: vi.fn() };
 
-  const transactionsService = new TransactionsService(transactionsRepository as unknown as TransactionsRepository);
+  const transactionsService = new TransactionsService(
+    transactionsRepository as unknown as TransactionsRepository,
+    accountsRepository as unknown as AccountsRepository
+  );
   const fundsService = new FundsService(
     fundsRepository as unknown as FundsRepository,
     accountsRepository as unknown as AccountsRepository,
@@ -45,6 +48,26 @@ describe("Ledger posting", () => {
     expect(transactionsRepository.insertTransaction).toHaveBeenCalledWith(
       expect.objectContaining({ type: TransactionType.EXPENSE, amount: -350.5 })
     );
+  });
+
+  it("posts an EXPENSE without an account and skips the account check", async () => {
+    const { fundsService, accountsRepository, transactionsRepository } = setup();
+
+    await fundsService.expense("user-1", FUND_ID, { amount: 80 });
+
+    expect(accountsRepository.ensureOwned).not.toHaveBeenCalled();
+    expect(transactionsRepository.insertTransaction).toHaveBeenCalledWith(
+      expect.objectContaining({ type: TransactionType.EXPENSE, amount: -80, accountId: null })
+    );
+  });
+
+  it("refuses a TOP_UP without an account", async () => {
+    const { transactionsService, transactionsRepository } = setup();
+
+    await expect(
+      transactionsService.createLedgerTransaction({ userId: "user-1", fundId: FUND_ID, type: TransactionType.TOP_UP, amountAbs: 10 })
+    ).rejects.toMatchObject({ code: "LEDGER_ACCOUNT_REQUIRED", status: 400 });
+    expect(transactionsRepository.insertTransaction).not.toHaveBeenCalled();
   });
 
   it("checks fund and account ownership before posting", async () => {
@@ -92,12 +115,17 @@ describe("Ledger posting", () => {
 });
 
 describe("Editing transactions", () => {
-  function setupEdit(existing: { type: TransactionType; amount: string }) {
+  function setupEdit(existing: { type: TransactionType; amount: string; account_id?: string | null }) {
     const repo = {
-      findByIdAndUserId: vi.fn(async () => ({ id: "tx", ...existing })),
+      findByIdAndUserId: vi.fn(async () => ({ id: "tx", account_id: ACCOUNT_ID, ...existing })),
       updateTransaction: vi.fn(async (_id, _userId, fields) => ({ id: "tx", ...fields }))
     };
-    return { repo, service: new TransactionsService(repo as unknown as TransactionsRepository) };
+    const accounts = { ensureOwned: vi.fn() };
+    return {
+      repo,
+      accounts,
+      service: new TransactionsService(repo as unknown as TransactionsRepository, accounts as unknown as AccountsRepository)
+    };
   }
 
   it("keeps an edited EXPENSE negative when the client sends a positive amount", async () => {
@@ -114,6 +142,24 @@ describe("Editing transactions", () => {
     await service.updateTransaction("user-1", "tx", { type: TransactionType.TOP_UP });
 
     expect(repo.updateTransaction).toHaveBeenCalledWith("tx", "user-1", { type: TransactionType.TOP_UP, amount: 350.5 });
+  });
+
+  it("requires an account when an account-less EXPENSE becomes a TOP_UP", async () => {
+    const { repo, accounts, service } = setupEdit({ type: TransactionType.EXPENSE, amount: "-80.00", account_id: null });
+
+    await expect(service.updateTransaction("user-1", "tx", { type: TransactionType.TOP_UP })).rejects.toMatchObject({
+      code: "LEDGER_ACCOUNT_REQUIRED"
+    });
+    expect(repo.updateTransaction).not.toHaveBeenCalled();
+
+    await service.updateTransaction("user-1", "tx", { type: TransactionType.TOP_UP, accountId: ACCOUNT_ID });
+
+    expect(accounts.ensureOwned).toHaveBeenCalledWith("user-1", ACCOUNT_ID);
+    expect(repo.updateTransaction).toHaveBeenCalledWith("tx", "user-1", {
+      type: TransactionType.TOP_UP,
+      accountId: ACCOUNT_ID,
+      amount: 80
+    });
   });
 
   it("leaves the amount alone when only the description changes", async () => {
@@ -139,7 +185,7 @@ describe("Fund transfers", () => {
       ]),
       updateTransaction: vi.fn()
     };
-    return { repo, service: new TransactionsService(repo as unknown as TransactionsRepository) };
+    return { repo, service: new TransactionsService(repo as unknown as TransactionsRepository, {} as AccountsRepository) };
   }
 
   it("writes the transfer as one pair with a positive amount and a generated idempotency key", async () => {

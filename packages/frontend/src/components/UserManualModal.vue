@@ -50,7 +50,7 @@
                 <tr><th>卡片區塊</th><th>功能說明</th></tr>
               </thead>
               <tbody>
-                <tr><td>帳戶</td><td>新增與管理存放資金的帳戶（例如：薪轉戶、儲蓄戶）</td></tr>
+                <tr><td>帳戶</td><td>新增與管理錢的來源帳戶（例如：薪轉戶、儲蓄戶），儲值時使用</td></tr>
                 <tr><td>基金</td><td>新增資金用途分類（例如：旅遊基金、緊急備用金），並顯示每個基金的即時餘額與總餘額</td></tr>
                 <tr><td>交易紀錄</td><td>查看、篩選、編輯、刪除所選基金的交易紀錄</td></tr>
               </tbody>
@@ -66,7 +66,7 @@
 
           <section id="account">
             <h3>4. 建立與管理帳戶</h3>
-            <p>「帳戶」代表資金實際存放的地方（例如銀行帳戶）。</p>
+            <p>「帳戶」代表錢從哪裡來（例如銀行帳戶），只有「儲值」時需要選擇；支出和轉帳只跟基金有關，不用選帳戶。</p>
             <ol>
               <li>在帳戶卡片中，點擊 <strong>「＋ 新增帳戶」</strong>。</li>
               <li>輸入 <strong>帳戶名稱</strong>（例如：玉山薪轉）。</li>
@@ -133,11 +133,11 @@
                 <ul>
                   <li><strong>儲值 (TOP_UP)</strong> — 將資金加入基金</li>
                   <li><strong>支出 (EXPENSE)</strong> — 從基金扣除資金</li>
-                  <li><strong>轉帳 (TRANSFER)</strong> — 把錢從一個基金挪到另一個基金（需選擇轉出與轉入基金）。錢仍放在同一個帳戶，不會計入儲值或支出；編輯或刪除時，兩個基金的紀錄會一起更新。</li>
+                  <li><strong>轉帳 (TRANSFER)</strong> — 把錢從一個基金挪到另一個基金（需選擇轉出與轉入基金）。不會計入儲值或支出；編輯或刪除時，兩個基金的紀錄會一起更新。</li>
                 </ul>
               </li>
               <li>輸入 <strong>金額</strong>（正整數）。</li>
-              <li>確認 <strong>基金</strong> 與 <strong>帳戶</strong>（基金預設為目前選取的基金）。</li>
+              <li>確認 <strong>基金</strong>（預設為目前選取的基金）；選「儲值」時另外選擇錢 <strong>從哪個帳戶存入</strong>。</li>
               <li>確認 <strong>交易日期</strong>（預設為今天）。</li>
               <li>輸入 <strong>備註</strong>（選填，例如：早餐、7-11）。</li>
               <li>點擊 <strong>「送出交易」</strong>。</li>
@@ -211,7 +211,7 @@
             </div>
             <div class="faq-item">
               <p class="faq-q">Q: 帳戶和基金有什麼差別？</p>
-              <p>A: <strong>帳戶</strong> 是資金存放的地方（實體銀行帳戶），<strong>基金</strong> 是資金的用途分類。每筆交易都需同時指定帳戶與基金。</p>
+              <p>A: <strong>帳戶</strong> 是資金存放的地方（實體銀行帳戶），<strong>基金</strong> 是資金的用途分類。錢從帳戶「儲值」進基金之後，支出和轉帳都只從基金扣除，所以只有儲值需要選帳戶。</p>
             </div>
             <div class="faq-item">
               <p class="faq-q">Q: 記錯金額怎麼辦？</p>

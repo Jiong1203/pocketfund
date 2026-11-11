@@ -18,7 +18,7 @@ export function createServices(db: DatabaseService, jwtSecret: string) {
   const accountsRepository = new AccountsRepository(db);
   const fundsRepository = new FundsRepository(db);
   const transactionsRepository = new TransactionsRepository(db);
-  const transactionsService = new TransactionsService(transactionsRepository);
+  const transactionsService = new TransactionsService(transactionsRepository, accountsRepository);
 
   return {
     auth: new AuthService(new AuthRepository(db), jwtSecret),

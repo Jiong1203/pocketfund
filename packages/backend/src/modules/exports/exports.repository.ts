@@ -25,7 +25,7 @@ export interface ExportAccountRow {
 export interface ExportTransactionRow {
   id: string;
   fund_id: string;
-  account_id: string;
+  account_id: string | null;
   type: string;
   amount: string;
   description: string | null;
@@ -53,7 +53,7 @@ export interface TransactionSheetRow {
   occurred_on: string;
   type: string;
   fund_name: string;
-  account_name: string;
+  account_name: string | null;
   amount: string;
   description: string | null;
   counterpart_fund_name: string | null;
@@ -129,7 +129,7 @@ export class ExportsRepository {
         cf.name as counterpart_fund_name
       from transactions t
       join funds f on f.id = t.fund_id
-      join accounts a on a.id = t.account_id
+      left join accounts a on a.id = t.account_id
       left join transactions other
         on other.transfer_group_id = t.transfer_group_id and other.id <> t.id
       left join funds cf on cf.id = other.fund_id

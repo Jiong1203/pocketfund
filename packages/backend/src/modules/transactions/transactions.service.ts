@@ -1,4 +1,5 @@
 import { AppError } from "../../common/errors";
+import type { AccountsRepository } from "../accounts/accounts.repository";
 import type { TransactionsRepository } from "./transactions.repository";
 import { type TransactionRecord, TransactionType } from "./transactions.types";
 
@@ -7,13 +8,14 @@ interface UpdateTransactionParams {
   amount?: number;
   description?: string;
   occurredAt?: string;
+  accountId?: string;
 }
 
 export interface CreateFundTransferParams {
   userId: string;
   fromFundId: string;
   toFundId: string;
-  accountId: string;
+  accountId?: string;
   amountAbs: number;
   description?: string;
   occurredAt?: string;
@@ -23,7 +25,8 @@ export interface CreateFundTransferParams {
 export interface CreateLedgerTransactionParams {
   userId: string;
   fundId: string;
-  accountId: string;
+  // Required for TOP_UP (where the money came from); optional for EXPENSE.
+  accountId?: string;
   type: TransactionType;
   amountAbs: number;
   description?: string;
@@ -33,10 +36,19 @@ export interface CreateLedgerTransactionParams {
 
 const PG_UNIQUE_VIOLATION = "23505";
 
+const accountRequired = () =>
+  new AppError({ code: "LEDGER_ACCOUNT_REQUIRED", message: "A top-up must record which account the money came from." }, 400);
+
 export class TransactionsService {
-  public constructor(private readonly transactionsRepository: TransactionsRepository) {}
+  public constructor(
+    private readonly transactionsRepository: TransactionsRepository,
+    private readonly accountsRepository: AccountsRepository
+  ) {}
 
   public async createLedgerTransaction(params: CreateLedgerTransactionParams): Promise<TransactionRecord> {
+    if (params.type === TransactionType.TOP_UP && !params.accountId) {
+      throw accountRequired();
+    }
     const signedAmount = this.applyAmountSign(params.type, params.amountAbs);
     const occurredAt = params.occurredAt ?? new Date().toISOString();
 
@@ -44,7 +56,7 @@ export class TransactionsService {
       return await this.transactionsRepository.insertTransaction({
         userId: params.userId,
         fundId: params.fundId,
-        accountId: params.accountId,
+        accountId: params.accountId ?? null,
         type: params.type,
         amount: signedAmount,
         description: params.description,
@@ -78,7 +90,7 @@ export class TransactionsService {
         userId: params.userId,
         fromFundId: params.fromFundId,
         toFundId: params.toFundId,
-        accountId: params.accountId,
+        accountId: params.accountId ?? null,
         amountAbs: Math.abs(params.amountAbs),
         description: params.description,
         occurredAt: params.occurredAt ?? new Date().toISOString(),
@@ -113,6 +125,12 @@ export class TransactionsService {
         400
       );
     }
+    if (isTransfer && params.accountId !== undefined) {
+      throw new AppError(
+        { code: "LEDGER_TRANSFER_ACCOUNT_LOCKED", message: "A transfer's account cannot be changed." },
+        400
+      );
+    }
     if (isTransfer && existing.transfer_group_id) {
       const legs = await this.transactionsRepository.updateTransferGroup(existing.transfer_group_id, userId, {
         amountAbs: params.amount === undefined ? undefined : Math.abs(params.amount),
@@ -126,12 +144,19 @@ export class TransactionsService {
       return updatedLeg;
     }
 
+    const resultingType = params.type ?? existing.type;
+    if (resultingType === TransactionType.TOP_UP && !(params.accountId ?? existing.account_id)) {
+      throw accountRequired();
+    }
+    if (params.accountId !== undefined) {
+      await this.accountsRepository.ensureOwned(userId, params.accountId);
+    }
+
     // Clients send amounts as positive values; re-apply the sign rule whenever amount or type changes
     // so an edited EXPENSE stays negative (and a type switch flips the stored sign).
     const fields = { ...params };
     if (params.amount !== undefined || params.type !== undefined) {
-      const type = params.type ?? existing.type;
-      fields.amount = this.applyAmountSign(type, params.amount ?? Number(existing.amount));
+      fields.amount = this.applyAmountSign(resultingType, params.amount ?? Number(existing.amount));
     }
 
     const updated = await this.transactionsRepository.updateTransaction(id, userId, fields);

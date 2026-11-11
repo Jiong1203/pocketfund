@@ -28,6 +28,25 @@ describe("Ledger routes", () => {
     expect(harness.services.funds.expense).toHaveBeenCalledWith(USER.id, FUND_ID, { accountId: ACCOUNT_ID, amount: 500 });
   });
 
+  it("POST /funds/:id/expenses and /transfers accept a body without an account", async () => {
+    harness.services.funds.expense.mockResolvedValue({ id: "tx3" });
+    harness.services.funds.transfer.mockResolvedValue({ from: { id: "out" }, to: { id: "in" } });
+
+    const expense = await harness.call("POST", `/funds/${FUND_ID}/expenses`, { body: { amount: 120 } });
+    const transfer = await harness.call("POST", `/funds/${FUND_ID}/transfers`, { body: { toFundId: OTHER_FUND_ID, amount: 50 } });
+
+    expect([expense.status, transfer.status]).toEqual([201, 201]);
+    expect(harness.services.funds.expense).toHaveBeenCalledWith(USER.id, FUND_ID, { amount: 120 });
+    expect(harness.services.funds.transfer).toHaveBeenCalledWith(USER.id, FUND_ID, { toFundId: OTHER_FUND_ID, amount: 50 });
+  });
+
+  it("POST /funds/:id/top-ups still requires an account", async () => {
+    const res = await harness.call("POST", `/funds/${FUND_ID}/top-ups`, { body: { amount: 120 } });
+
+    expect(res.status).toBe(400);
+    expect(harness.services.funds.topUp).not.toHaveBeenCalled();
+  });
+
   it("POST /funds/:id/transfers calls transfer with the source fund from the path", async () => {
     harness.services.funds.transfer.mockResolvedValue({ from: { id: "out" }, to: { id: "in" } });
     const body = { toFundId: OTHER_FUND_ID, accountId: ACCOUNT_ID, amount: 800 };

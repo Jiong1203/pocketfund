@@ -61,7 +61,7 @@
       <!-- 交易紀錄 -->
       <AppCard :title="selectedFund ? `交易紀錄：${selectedFund.name}` : '交易紀錄'" class="wide">
         <template #actions>
-          <button type="button" class="btn btn-sm" :disabled="!funds.length || !accounts.length" @click="openTxDialog"><AppIcon name="plus" :size="16" />新增交易</button>
+          <button type="button" class="btn btn-sm" :disabled="!funds.length" @click="openTxDialog"><AppIcon name="plus" :size="16" />新增交易</button>
         </template>
         <div class="filters">
           <label class="filter">
@@ -188,6 +188,14 @@
                 </template>
               </select>
               <small v-if="editTxForm.type === 'TRANSFER'" class="field-hint">轉帳的金額、日期和說明會同步更新到轉出和轉入兩個基金。</small>
+            </label>
+            <label v-if="editNeedsAccount" class="field">
+              <span>從哪個帳戶存入</span>
+              <select v-model="editTxForm.accountId" required>
+                <option disabled value="">請選擇帳戶</option>
+                <option v-for="account in accounts" :key="account.id" :value="account.id">{{ account.name }}</option>
+              </select>
+              <small v-if="!accounts.length" class="field-hint">請先在儀表板新增帳戶。</small>
             </label>
             <label class="field">
               <span>金額</span>
@@ -319,13 +327,15 @@
                 <option v-for="fund in transferTargets" :key="fund.id" :value="fund.id">{{ fund.name }}（餘額 {{ formatMoney(fund.balance) }}）</option>
               </select>
             </label>
-            <label class="field">
-              <span>{{ isTransfer ? "錢存放在哪個帳戶" : "帳戶" }}</span>
+            <!-- Only a top-up brings money in from an account; expenses and transfers stay within funds. -->
+            <label v-if="isTopUp && accounts.length" class="field">
+              <span>從哪個帳戶存入</span>
               <select v-model="txForm.accountId" required>
                 <option disabled value="">請選擇帳戶</option>
                 <option v-for="account in accounts" :key="account.id" :value="account.id">{{ account.name }}</option>
               </select>
             </label>
+            <p v-if="isTopUp && !accounts.length" class="dialog-note">儲值需要先在儀表板新增帳戶，記錄錢從哪裡存入。</p>
             <label class="field">
               <span>交易日期</span>
               <input v-model="txForm.occurredAt" type="date" required />
@@ -334,10 +344,10 @@
               <span>說明（可選）</span>
               <input v-model.trim="txForm.description" :placeholder="DESCRIPTION_PLACEHOLDERS[txForm.actionType]" />
             </label>
-            <p v-if="isTransfer" class="dialog-note">轉帳只是在基金之間重新分配，錢仍放在同一個帳戶，不會計入儲值或支出。</p>
+            <p v-if="isTransfer" class="dialog-note">轉帳只是在基金之間重新分配，不會計入儲值或支出。</p>
             <div class="dialog-footer">
               <button type="button" class="btn btn-ghost" @click="showTxDialog = false">取消</button>
-              <button type="submit" class="btn" :disabled="submitting">{{ submitting ? "處理中..." : "送出交易" }}</button>
+              <button type="submit" class="btn" :disabled="submitting || (isTopUp && !accounts.length)">{{ submitting ? "處理中..." : "送出交易" }}</button>
             </div>
           </form>
         </div>
@@ -412,6 +422,7 @@ const editTxForm = reactive({
   amount: 0,
   description: "",
   occurredDate: "",
+  accountId: "",
   original: null as TransactionRecord | null
 });
 
@@ -431,6 +442,9 @@ const totalBalance = computed(() => funds.value.reduce((sum, fund) => sum + fund
 const selectedFund = computed(() => funds.value.find((fund) => fund.id === queryForm.fundId));
 const fundNames = computed<Record<string, string>>(() => Object.fromEntries(funds.value.map((fund) => [fund.id, fund.name])));
 const isTransfer = computed(() => txForm.actionType === "transfers");
+const isTopUp = computed(() => txForm.actionType === "top-ups");
+// An expense saved without an account needs one if it is switched to a top-up.
+const editNeedsAccount = computed(() => editTxForm.type === "TOP_UP" && !editTxForm.original?.account_id);
 const transferTargets = computed(() => funds.value.filter((fund) => fund.id !== txForm.fundId));
 
 const totalPages = computed(() => {
@@ -620,7 +634,6 @@ function submitTransaction(): Promise<void> {
     if (txForm.actionType === "transfers") {
       await pocketfundApi.createTransfer(txForm.fundId, {
         toFundId: txForm.toFundId,
-        accountId: txForm.accountId,
         amount,
         description,
         occurredAt
@@ -628,7 +641,7 @@ function submitTransaction(): Promise<void> {
     } else if (txForm.actionType === "top-ups") {
       await pocketfundApi.createTopUp(txForm.fundId, txForm.accountId, amount, description, occurredAt);
     } else {
-      await pocketfundApi.createExpense(txForm.fundId, txForm.accountId, amount, description, occurredAt);
+      await pocketfundApi.createExpense(txForm.fundId, amount, description, occurredAt);
     }
     txForm.amount = null;
     txForm.description = "";
@@ -645,6 +658,7 @@ function openEditDialog(row: TransactionRecord): void {
   editTxForm.amount = Math.abs(Number(row.amount));
   editTxForm.description = row.description ?? "";
   editTxForm.occurredDate = toLocalDateInput(row.occurred_at);
+  editTxForm.accountId = accounts.value[0]?.id ?? "";
   editTxForm.original = row;
   showEditTxDialog.value = true;
 }
@@ -654,8 +668,9 @@ function saveEdit(): Promise<void> {
     const original = editTxForm.original;
     if (!original) return;
 
-    const changes: { type?: string; amount?: number; description?: string; occurredAt?: string } = {};
+    const changes: { type?: string; amount?: number; description?: string; occurredAt?: string; accountId?: string } = {};
     if (editTxForm.type !== original.type) changes.type = editTxForm.type;
+    if (editNeedsAccount.value) changes.accountId = editTxForm.accountId;
     if (editTxForm.amount !== Math.abs(Number(original.amount))) changes.amount = editTxForm.amount;
     if (editTxForm.description !== (original.description ?? "")) changes.description = editTxForm.description;
     // Only touch occurred_at when the date changed, so the original time of day is kept otherwise.
