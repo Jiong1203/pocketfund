@@ -44,7 +44,11 @@ export class ExportsService {
 
   public async buildTransactionsCsv(userId: string): Promise<string> {
     const rows = await this.exportsRepository.listTransactionSheet(userId);
-    const lines = [CSV_HEADER, ...rows.map(toCsvRecord)].map((fields) => fields.map(escapeCsvField).join(","));
+    const records = [CSV_HEADER, ...rows.map(toCsvRecord)];
+    if (rows.length > 0) {
+      records.push([], ...buildSummaryRecords(rows));
+    }
+    const lines = records.map((fields) => fields.map(escapeCsvField).join(","));
     return UTF8_BOM + lines.join("\r\n") + "\r\n";
   }
 }
@@ -60,6 +64,62 @@ function toCsvRecord(row: TransactionSheetRow): string[] {
     neutralizeFormula(row.counterpart_fund_name ?? ""),
     row.id
   ];
+}
+
+interface FundTotals {
+  topUp: bigint;
+  expense: bigint;
+  transfer: bigint;
+}
+
+// Totals appended below the detail rows: overall per type, then per fund (balance = sum of all its amounts).
+function buildSummaryRecords(rows: TransactionSheetRow[]): string[][] {
+  const overall: FundTotals = { topUp: 0n, expense: 0n, transfer: 0n };
+  const byFund = new Map<string, FundTotals>();
+
+  for (const row of rows) {
+    const cents = toCents(row.amount);
+    let fund = byFund.get(row.fund_name);
+    if (!fund) {
+      fund = { topUp: 0n, expense: 0n, transfer: 0n };
+      byFund.set(row.fund_name, fund);
+    }
+    const key = row.type === "TOP_UP" ? "topUp" : row.type === "EXPENSE" ? "expense" : "transfer";
+    overall[key] += cents;
+    fund[key] += cents;
+  }
+
+  return [
+    ["總計"],
+    ["項目", "金額"],
+    ["儲值合計", formatCents(overall.topUp)],
+    ["支出合計", formatCents(overall.expense)],
+    ["淨額", formatCents(overall.topUp + overall.expense + overall.transfer)],
+    [],
+    ["各基金小計"],
+    ["基金", "儲值", "支出", "轉帳淨額", "餘額"],
+    ...[...byFund].map(([name, t]) => [
+      neutralizeFormula(name),
+      formatCents(t.topUp),
+      formatCents(t.expense),
+      formatCents(t.transfer),
+      formatCents(t.topUp + t.expense + t.transfer)
+    ])
+  ];
+}
+
+// Amounts arrive as numeric(14,2) strings; sum them as integer cents to avoid floating-point drift.
+function toCents(amount: string): bigint {
+  const negative = amount.startsWith("-");
+  const [whole = "0", fraction = ""] = amount.replace(/^[-+]/, "").split(".");
+  const cents = BigInt(whole) * 100n + BigInt(fraction.padEnd(2, "0").slice(0, 2));
+  return negative ? -cents : cents;
+}
+
+function formatCents(cents: bigint): string {
+  const negative = cents < 0n;
+  const abs = negative ? -cents : cents;
+  return `${negative ? "-" : ""}${abs / 100n}.${(abs % 100n).toString().padStart(2, "0")}`;
 }
 
 // Free-text cells starting with =, +, -, @ would be run as formulas by spreadsheet apps.
