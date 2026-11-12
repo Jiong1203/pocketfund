@@ -62,9 +62,9 @@ async function logout(): Promise<void> {
   position: sticky;
   top: 0;
   z-index: 50;
-  background: color-mix(in srgb, var(--surface-color) 88%, transparent);
+  /* Solid: a translucent header let card buttons ghost through while scrolling. */
+  background: var(--surface-color);
   border-bottom: 1px solid var(--border-color);
-  backdrop-filter: blur(8px);
 }
 
 .app-header-inner {
@@ -135,14 +135,14 @@ async function logout(): Promise<void> {
   margin-left: auto;
 }
 
+/* Highlight the profile icon while on the profile page, like the main nav. */
+.actions .btn-icon.router-link-active {
+  background: var(--primary-soft-color);
+  color: var(--text-color);
+}
+
 /* Phones: the nav moves to a bottom tab bar so it stays reachable with one thumb. */
 @media (max-width: 640px) {
-  /* backdrop-filter would make the header the containing block of the fixed tab bar. */
-  .app-header {
-    backdrop-filter: none;
-    background: var(--surface-color);
-  }
-
   .nav {
     position: fixed;
     right: 0;
@@ -153,9 +153,9 @@ async function logout(): Promise<void> {
     gap: 0;
     margin: 0;
     padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
-    background: color-mix(in srgb, var(--surface-color) 94%, transparent);
+    background: var(--surface-color);
     border-top: 1px solid var(--border-color);
-    backdrop-filter: blur(8px);
+    box-shadow: 0 -2px 8px rgb(15 23 42 / 0.04);
   }
 
   .nav-link {

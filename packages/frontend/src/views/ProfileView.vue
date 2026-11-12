@@ -152,7 +152,6 @@ async function submit(): Promise<void> {
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 16px;
   align-items: start;
-  max-width: 880px;
 }
 
 .muted {
