@@ -783,7 +783,8 @@ onMounted(async () => {
   display: grid;
   grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
   gap: 20px;
-  align-items: start;
+  /* Stretch so the funds and accounts cards in the same row share one height. */
+  align-items: stretch;
 }
 
 .wide {

@@ -328,7 +328,7 @@ onMounted(load);
 .page-head {
   display: flex;
   justify-content: space-between;
-  align-items: flex-end;
+  align-items: center;
   gap: 16px;
   margin-bottom: 20px;
 }
