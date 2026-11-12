@@ -5,6 +5,7 @@
   "description": "PocketFund API Worker (Hono on Cloudflare Workers)",
   "scripts": {
     "migrate": "node --env-file-if-exists=.env scripts/migrate.ts",
+    "migrate:status": "node --env-file-if-exists=.env scripts/migrate.ts --check",
     "typecheck": "npm --prefix ../frontend run types && tsc -p tsconfig.json && tsc -p test/tsconfig.json",
     "test": "vitest run",
     "test:integration": "vitest run test/integration"

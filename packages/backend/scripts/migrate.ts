@@ -1,8 +1,11 @@
 // Applies SQL files in ../migrations to DATABASE_URL in filename order (Node.js script, not part of the Worker).
-// Usage: npm run migrate  (reads DATABASE_URL from packages/backend/.env)
+// Usage: npm run migrate         (reads DATABASE_URL from packages/backend/.env)
+//        npm run migrate:status  (--check: only lists pending files, applies nothing)
 import fs from "node:fs";
 import path from "node:path";
 import pg from "pg";
+
+const checkOnly = process.argv.includes("--check");
 
 async function migrate(): Promise<void> {
   const connectionString = process.env.DATABASE_URL;
@@ -26,6 +29,17 @@ async function migrate(): Promise<void> {
       .readdirSync(migrationsDir)
       .filter((f) => f.endsWith(".sql"))
       .sort();
+
+    if (checkOnly) {
+      const applied = await client.query<{ filename: string }>("select filename from schema_migrations");
+      const appliedSet = new Set(applied.rows.map((row) => row.filename));
+      const pending = files.filter((file) => !appliedSet.has(file));
+      for (const file of pending) {
+        console.log(`[pending] ${file}`);
+      }
+      console.log(pending.length > 0 ? `Pending migrations: ${pending.length}` : "No pending migrations.");
+      return;
+    }
 
     for (const file of files) {
       const { rowCount } = await client.query("select 1 from schema_migrations where filename = $1", [file]);
