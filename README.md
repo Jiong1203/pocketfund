@@ -51,6 +51,8 @@ One-time setup (`cf auth login` first) — already done for the current deployme
 
 After that, `npm run deploy` builds and deploys the SPA and API together.
 
+Routine release: run `npm run migrate:status` first (lists pending migrations without applying them); if anything is pending, run `npm run migrate`, then `npm run deploy`. In Claude Code, the project skill `/deploy` (`.claude/skills/deploy/SKILL.md`) does this check-migrate-deploy flow.
+
 ## Implemented APIs (Phase 2.5 - Stage 2)
 
 - Health
